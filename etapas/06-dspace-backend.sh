@@ -7,6 +7,8 @@ ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.dspace.deploy}"
 [[ "${INSTALL_DSPACE:-yes}" == "skip" ]] && exit 99
 set -euo pipefail
 
+ETAPA_INICIO=$(date +%s)
+
 DSPACE_DIR="${DSPACE_DIR:-/dspace}"
 DSPACE_SRC="/home/dspace/dspace-src"
 DSPACE_BASEURL="https://${DSPACE_HOSTNAME}"
@@ -15,6 +17,7 @@ DSPACE_REST_URL="https://${DSPACE_HOSTNAME}/server"
 echo -e "\n\033[0;34m═══════════════════════════════════════════════════\033[0m"
 echo -e "\033[0;36m  Etapa 06 — DSpace ${DSPACE_VERSION} (backend)\033[0m"
 echo -e "\033[0;34m═══════════════════════════════════════════════════\033[0m"
+echo -e "\033[0;36m  Tiempo estimado: ~15-20 min\033[0m"
 
 echo -e "\n\033[0;34m--- 6.1 Clonando repositorio ---\033[0m"
 if [[ ! -d "${DSPACE_SRC}" ]]; then
@@ -45,11 +48,13 @@ CFGEOF
 chown dspace:dspace "${DSPACE_SRC}/dspace/config/local.cfg"
 echo -e "\033[0;32m[✓]\033[0m local.cfg generado"
 
-echo -e "\n\033[0;34m--- 6.3 Compilando DSpace (esto puede tardar 10-15 min) ---\033[0m"
+echo -e "\n\033[0;34m── 6.3 Compilando DSpace (~10-15 min) ──────────────────\033[0m"
+echo -e "\033[0;36m[→]\033[0m Compilando DSpace backend (~10-15 min, por favor espere)..."
 su - dspace -c "cd '${DSPACE_SRC}' && mvn clean package -DskipTests"
 echo -e "\033[0;32m[✓]\033[0m Compilación completada"
 
-echo -e "\n\033[0;34m--- 6.4 Instalando en ${DSPACE_DIR} ---\033[0m"
+echo -e "\n\033[0;34m── 6.4 Instalando en ${DSPACE_DIR} (~3-5 min) ───────────\033[0m"
+echo -e "\033[0;36m[→]\033[0m Ejecutando ant fresh_install (~3-5 min)..."
 su - dspace -c "cd '${DSPACE_SRC}/dspace/target/dspace-installer' && ant fresh_install"
 echo -e "\033[0;32m[✓]\033[0m DSpace instalado en ${DSPACE_DIR}"
 
@@ -96,3 +101,7 @@ done
 [[ "$TOMCAT_READY" == "true" ]] || { echo "[✗] Tomcat no respondió"; exit 1; }
 
 echo -e "\033[0;32m[✓]\033[0m DSpace backend desplegado ✓"
+
+ETAPA_FIN=$(date +%s)
+DURACION_MIN=$(( (ETAPA_FIN - ETAPA_INICIO + 59) / 60 ))
+echo -e "\033[0;32m[✓]\033[0m Etapa completada en ${DURACION_MIN} minuto(s)"

@@ -6,6 +6,8 @@
 # =============================================================================
 set -euo pipefail
 
+INSTALL_INICIO=$(date +%s)
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ETAPAS_DIR="${SCRIPT_DIR}/etapas"
 
@@ -42,7 +44,23 @@ echo -e "  Entorno:   \033[0;32m${SCIBACK_ENV:-prod}\033[0m"
 echo -e "  Log:       \033[0;32m${LOG_FILE}\033[0m"
 echo -e "  Fecha:     $(date '+%Y-%m-%d %H:%M:%S %Z')"
 echo ""
-
+echo ""
+echo -e "[0;34mSe ejecutarán 13 etapas (tiempo estimado):[0m"
+echo "  01. Sistema (paquetes, swap, usuario)     ~3 min"
+echo "  02. Java 17                               ~1 min"
+echo "  03. PostgreSQL 14                         ~2 min"
+echo "  04. Solr 8.11.4                           ~5 min"
+echo "  05. Tomcat 9                              ~1 min"
+echo "  06. DSpace Backend                        ~15 min"
+echo "  07. Frontend Angular + PM2                ~12 min"
+echo "  08. Nginx + SSL                           ~2 min"
+echo "  09. Handle Server                         ~1 min"
+echo "  10. Cron jobs                             ~1 min"
+echo "  11. Schemas ALICIA                        ~1 min"
+echo "  12. Vocabularios CONCYTEC                 ~1 min"
+echo "  13. Formularios depósito                  ~1 min"
+echo -e "[0;36m  Total estimado: ~45 min[0m"
+echo ""
 # ─── Etapas ──────────────────────────────────────────────────
 ETAPAS=(
   "01-sistema.sh"
@@ -100,25 +118,29 @@ done
 
 # ─── Resumen ─────────────────────────────────────────────────
 DSPACE_BASEURL="https://${DSPACE_HOSTNAME}"
+INSTALL_FIN=$(date +%s)
+TOTAL_MIN=$(( (INSTALL_FIN - INSTALL_INICIO + 59) / 60 ))
 
 echo ""
-echo -e "\033[0;34m╔══════════════════════════════════════════════════════════╗\033[0m"
-echo -e "\033[0;36m║  INSTALACIÓN COMPLETADA                                 ║\033[0m"
-echo -e "\033[0;34m╚══════════════════════════════════════════════════════════╝\033[0m"
-echo ""
-echo -e "  Exitosas:  \033[0;32m${EXITOSAS}\033[0m / ${TOTAL}"
-echo -e "  Omitidas:  \033[1;33m${OMITIDAS}\033[0m"
-echo -e "  Fallidas:  \033[0;31m${FALLIDAS}\033[0m"
-echo ""
-echo "  URLs:"
-echo "    Frontend:  ${DSPACE_BASEURL}"
-echo "    REST API:  ${DSPACE_BASEURL}/server"
-echo "    OAI-PMH:   ${DSPACE_BASEURL}/oai/request"
-echo ""
-echo "  Verificar servicios:"
-echo "    systemctl status tomcat9 solr nginx"
-echo "    sudo -u dspace pm2 list"
+echo -e "[0;34m╔══════════════════════════════════════════════════════════╗[0m"
+if [[ "$FALLIDAS" -eq 0 ]]; then
+  echo -e "[0;36m║  ✅ INSTALACIÓN COMPLETADA                              ║[0m"
+else
+  echo -e "[1;33m║  ⚠️  INSTALACIÓN COMPLETADA CON ERRORES                ║[0m"
+fi
+echo -e "[0;34m╠══════════════════════════════════════════════════════════╣[0m"
+echo -e "[0;36m║  Tiempo total: ${TOTAL_MIN} minuto(s)                                  ║[0m"
+echo -e "[0;36m║  Etapas: ${EXITOSAS}/${TOTAL} exitosas | Omitidas: ${OMITIDAS} | Fallidas: ${FALLIDAS}               ║[0m"
+echo -e "[0;34m╠══════════════════════════════════════════════════════════╣[0m"
+echo -e "[0;36m║  Frontend:  ${DSPACE_BASEURL}[0m"
+echo -e "[0;36m║  REST API:  ${DSPACE_BASEURL}/server[0m"
+echo -e "[0;36m║  OAI-PMH:   ${DSPACE_BASEURL}/oai/request[0m"
+echo -e "[0;34m╠══════════════════════════════════════════════════════════╣[0m"
+echo -e "[0;36m║  Verificar:                                              ║[0m"
+echo -e "[0;36m║    systemctl status tomcat9 solr nginx                   ║[0m"
+echo -e "[0;36m║    su - dspace -c 'pm2 list'                           ║[0m"
+echo -e "[0;34m╚══════════════════════════════════════════════════════════╝[0m"
 echo ""
 echo "  Log: ${LOG_FILE}"
 echo ""
-[[ "$FALLIDAS" -eq 0 ]] && echo -e "\033[0;32m[✓] Todo listo ✓\033[0m" || echo -e "\033[1;33m[!] ${FALLIDAS} error(es)\033[0m"
+[[ "$FALLIDAS" -eq 0 ]] && echo -e "[0;32m[✓] Todo listo ✓[0m" || echo -e "[1;33m[!] ${FALLIDAS} error(es)[0m"

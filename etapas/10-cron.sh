@@ -7,11 +7,14 @@ ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.dspace.deploy}"
 [[ "${INSTALL_CRON:-yes}" == "skip" ]] && exit 99
 set -euo pipefail
 
+ETAPA_INICIO=$(date +%s)
+
 DSPACE_DIR="${DSPACE_DIR:-/dspace}"
 
 echo -e "\n\033[0;34m═══════════════════════════════════════════════════\033[0m"
 echo -e "\033[0;36m  Etapa 10 — Cron jobs\033[0m"
 echo -e "\033[0;34m═══════════════════════════════════════════════════\033[0m"
+echo -e "\033[0;36m  Tiempo estimado: ~1 min\033[0m"
 
 mkdir -p "${DSPACE_DIR}/log"
 chown dspace:dspace "${DSPACE_DIR}/log"
@@ -38,3 +41,7 @@ CRON
   echo -e "\033[0;32m[✓]\033[0m Cron jobs instalados"
 fi
 rm -f "$CRON_TMP"
+
+ETAPA_FIN=$(date +%s)
+DURACION_MIN=$(( (ETAPA_FIN - ETAPA_INICIO + 59) / 60 ))
+echo -e "\033[0;32m[✓]\033[0m Etapa completada en ${DURACION_MIN} minuto(s)"

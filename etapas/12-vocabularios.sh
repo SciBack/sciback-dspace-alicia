@@ -7,6 +7,8 @@
 # =============================================================================
 set -euo pipefail
 
+ETAPA_INICIO=$(date +%s)
+
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 BLUE='\033[0;34m'; CYAN='\033[0;36m'; NC='\033[0m'
 
@@ -378,6 +380,8 @@ OCDE_FORD
 # EJECUCIÓN
 # =============================================================================
 
+echo -e "\033[0;36m  Tiempo estimado: ~1-2 min\033[0m"
+
 header "Paso 1 — Generando vocabularios formato DSpace"
 info "Datos oficiales CONCYTEC: purl.org/pe-repo/*"
 
@@ -410,7 +414,8 @@ header "Paso 3 — Validación XML"
 VALID=0; INVALID=0
 for FILE in renati-level.xml renati-type.xml dc-type.xml dc-accessrights.xml dc-subject-ocde.xml; do
   if xmllint --noout "${VOCAB_DIR}/${FILE}" 2>/dev/null; then
-    NODES=$(xmllint --xpath 'count(//node)' "${VOCAB_DIR}/${FILE}" 2>/dev/null || echo "?")
+    NODES=$(xmllint --xpath 'count(//node)' "${VOCAB_DIR}/${FILE}" 2>/dev/null || true)
+    NODES="${NODES:-?}"
     log "${FILE}: XML válido, ${NODES} nodos"
     ((VALID++))
   else
@@ -444,3 +449,7 @@ echo ""
 echo "  Próximo: sudo bash setup-input-forms.sh"
 echo "  Log: ${LOG_FILE}"
 log "Vocabularios listos ✓"
+
+ETAPA_FIN=$(date +%s)
+DURACION_MIN=$(( (ETAPA_FIN - ETAPA_INICIO + 59) / 60 ))
+echo -e "\033[0;32m[✓]\033[0m Etapa completada en ${DURACION_MIN} minuto(s)"

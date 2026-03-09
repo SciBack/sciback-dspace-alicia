@@ -8,6 +8,8 @@ ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.dspace.deploy}"
 [[ "${INSTALL_FRONTEND:-yes}" == "skip" ]] && exit 99
 set -euo pipefail
 
+ETAPA_INICIO=$(date +%s)
+
 DSPACE_VERSION="${DSPACE_VERSION:-7.6.6}"
 FRONTEND_DIR="/home/dspace/frontend"
 NVM_DIR="/home/dspace/.nvm"
@@ -16,6 +18,7 @@ NODE_MAJOR="${NODE_MAJOR:-20}"
 echo -e "\n\033[0;34m═══════════════════════════════════════════════════\033[0m"
 echo -e "\033[0;36m  Etapa 07 — Node.js ${NODE_MAJOR} + Frontend Angular\033[0m"
 echo -e "\033[0;34m═══════════════════════════════════════════════════\033[0m"
+echo -e "\033[0;36m  Tiempo estimado: ~12 min\033[0m"
 
 echo -e "\n\033[0;34m--- 7.1 Instalando Node.js ${NODE_MAJOR} (base sistema) ---\033[0m"
 if ! command -v node &>/dev/null; then
@@ -67,7 +70,8 @@ cp "${FRONTEND_DIR}/config/config.yml" "${FRONTEND_DIR}/config/config.production
 chown -R dspace:dspace "${FRONTEND_DIR}"
 echo -e "\033[0;32m[✓]\033[0m config.yml generado (ui.host=0.0.0.0, rest.host=${DSPACE_HOSTNAME})"
 
-echo -e "\n\033[0;34m--- 7.5 Instalando dependencias y compilando (puede tardar 5-10 min) ---\033[0m"
+echo -e "\n\033[0;34m── 7.5 Instalando dependencias y compilando (~8-12 min) ───────────────\033[0m"
+echo -e "\033[0;36m[→]\033[0m Ejecutando yarn install + yarn build:ssr (~8-12 min, por favor espere)..."
 su - dspace -c "export NVM_DIR='${NVM_DIR}' && source \"\$NVM_DIR/nvm.sh\" && cd '${FRONTEND_DIR}' && yarn install --frozen-lockfile && yarn build:ssr"
 echo -e "\033[0;32m[✓]\033[0m Frontend Angular compilado"
 
@@ -101,3 +105,7 @@ su - dspace -c "export NVM_DIR='${NVM_DIR}' && source \"\$NVM_DIR/nvm.sh\" && pm
 NODE_BIN_DIR=$(su - dspace -c "export NVM_DIR='${NVM_DIR}' && source \"\$NVM_DIR/nvm.sh\" && dirname \"\$(nvm which default)\"")
 env PATH="$PATH:${NODE_BIN_DIR}" pm2 startup systemd -u dspace --hp /home/dspace
 echo -e "\033[0;32m[✓]\033[0m PM2 configurado: ${PM2_INSTANCES:-3} instancias en puerto ${PM2_PORT:-4000}"
+
+ETAPA_FIN=$(date +%s)
+DURACION_MIN=$(( (ETAPA_FIN - ETAPA_INICIO + 59) / 60 ))
+echo -e "\033[0;32m[✓]\033[0m Etapa completada en ${DURACION_MIN} minuto(s)"

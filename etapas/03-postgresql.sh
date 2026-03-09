@@ -7,9 +7,12 @@ ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.dspace.deploy}"
 [[ "${INSTALL_POSTGRES:-yes}" == "skip" ]] && exit 99
 set -euo pipefail
 
+ETAPA_INICIO=$(date +%s)
+
 echo -e "\n\033[0;34m═══════════════════════════════════════════════════\033[0m"
 echo -e "\033[0;36m  Etapa 03 — PostgreSQL 14\033[0m"
 echo -e "\033[0;34m═══════════════════════════════════════════════════\033[0m"
+echo -e "\033[0;36m  Tiempo estimado: ~2 min\033[0m"
 
 echo -e "\n\033[0;34m--- Instalando PostgreSQL 14 (nativo Ubuntu 22.04) ---\033[0m"
 apt-get install -y -q postgresql postgresql-contrib
@@ -32,3 +35,7 @@ sudo -u postgres psql -d "${DB_NAME}" -c "CREATE EXTENSION IF NOT EXISTS pgcrypt
 
 PG_VER=$(sudo -u postgres psql -tc "SHOW server_version;" | xargs)
 echo -e "\033[0;32m[✓]\033[0m PostgreSQL ${PG_VER} listo — DB: ${DB_NAME}, User: ${DB_USER}"
+
+ETAPA_FIN=$(date +%s)
+DURACION_MIN=$(( (ETAPA_FIN - ETAPA_INICIO + 59) / 60 ))
+echo -e "\033[0;32m[✓]\033[0m Etapa completada en ${DURACION_MIN} minuto(s)"

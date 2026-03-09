@@ -7,11 +7,14 @@ ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.dspace.deploy}"
 [[ "${INSTALL_TOMCAT:-yes}" == "skip" ]] && exit 99
 set -euo pipefail
 
+ETAPA_INICIO=$(date +%s)
+
 DSPACE_DIR="${DSPACE_DIR:-/dspace}"
 
 echo -e "\n\033[0;34m═══════════════════════════════════════════════════\033[0m"
 echo -e "\033[0;36m  Etapa 05 — Apache Tomcat ${TOMCAT_VERSION}\033[0m"
 echo -e "\033[0;34m═══════════════════════════════════════════════════\033[0m"
+echo -e "\033[0;36m  Tiempo estimado: ~1-2 min\033[0m"
 
 if [[ ! -d /opt/tomcat9 ]]; then
   cd /opt
@@ -54,3 +57,7 @@ EOF
 systemctl daemon-reload
 systemctl enable tomcat9
 echo -e "\033[0;32m[✓]\033[0m Tomcat configurado: heap ${TOMCAT_HEAP_MIN:-1024m}-${TOMCAT_HEAP_MAX:-2048m}"
+
+ETAPA_FIN=$(date +%s)
+DURACION_MIN=$(( (ETAPA_FIN - ETAPA_INICIO + 59) / 60 ))
+echo -e "\033[0;32m[✓]\033[0m Etapa completada en ${DURACION_MIN} minuto(s)"
