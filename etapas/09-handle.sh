@@ -15,7 +15,7 @@ echo -e "\033[0;34m════════════════════�
 
 if [[ ! -d /opt/handle ]]; then
   cd /opt
-  wget -q "https://www.handle.net/hnr-source/handle-${HANDLE_VER}-distribution.tar.gz"
+  wget --progress=bar:force "https://www.handle.net/hnr-source/handle-${HANDLE_VER}-distribution.tar.gz"
   tar xzf "handle-${HANDLE_VER}-distribution.tar.gz"
   mv "handle-${HANDLE_VER}" /opt/handle
   chown -R dspace:dspace /opt/handle

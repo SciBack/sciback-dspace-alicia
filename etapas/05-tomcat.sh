@@ -15,7 +15,7 @@ echo -e "\033[0;34m════════════════════�
 
 if [[ ! -d /opt/tomcat9 ]]; then
   cd /opt
-  wget -q "https://archive.apache.org/dist/tomcat/tomcat-9/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz"
+  wget --progress=bar:force "https://archive.apache.org/dist/tomcat/tomcat-9/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz"
   tar xzf "apache-tomcat-${TOMCAT_VERSION}.tar.gz"
   mv "apache-tomcat-${TOMCAT_VERSION}" /opt/tomcat9
   chown -R dspace:dspace /opt/tomcat9

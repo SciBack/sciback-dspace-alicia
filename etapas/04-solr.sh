@@ -13,7 +13,7 @@ echo -e "\033[0;34m════════════════════�
 
 if [[ ! -d /opt/solr ]] && [[ ! -f /etc/init.d/solr ]]; then
   cd /opt
-  wget -q "https://archive.apache.org/dist/lucene/solr/${SOLR_VERSION}/solr-${SOLR_VERSION}.tgz"
+  wget --progress=bar:force "https://archive.apache.org/dist/lucene/solr/${SOLR_VERSION}/solr-${SOLR_VERSION}.tgz"
   tar xzf "solr-${SOLR_VERSION}.tgz" "solr-${SOLR_VERSION}/bin/install_solr_service.sh" --strip-components=2
   bash install_solr_service.sh "solr-${SOLR_VERSION}.tgz"
   rm -f "solr-${SOLR_VERSION}.tgz" install_solr_service.sh
