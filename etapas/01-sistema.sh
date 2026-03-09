@@ -63,3 +63,4 @@ fi
 mkdir -p "${DSPACE_DIR}"
 chown dspace:dspace "${DSPACE_DIR}"
 echo -e "\033[0;32m[✓]\033[0m Paso 1 completado ✓"
+chown -R dspace:dspace /home/dspace
