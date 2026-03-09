@@ -7,16 +7,19 @@ ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.dspace.deploy}"
 [[ "${INSTALL_NGINX:-yes}" == "skip" ]] && exit 99
 set -euo pipefail
 
+ETAPA_INICIO=$(date +%s)
+
 FRONTEND_DIR="/home/dspace/frontend"
 
 echo -e "\n\033[0;34m═══════════════════════════════════════════════════\033[0m"
 echo -e "\033[0;36m  Etapa 08 — Nginx (reverse proxy + protección)\033[0m"
 echo -e "\033[0;34m═══════════════════════════════════════════════════\033[0m"
+echo -e "\033[0;36m  Tiempo estimado: ~2-3 min\033[0m"
 
 echo -e "\n\033[0;34m--- 8.1 Instalando Nginx ---\033[0m"
 apt-get remove --purge -y nginx nginx-common nginx-core 2>/dev/null || true
 apt-get install -y nginx
-apt-get install -y -qq certbot python3-certbot-nginx
+apt-get install -y -q certbot python3-certbot-nginx
 [[ -f /etc/nginx/nginx.conf ]] || { echo "[✗] nginx.conf no existe"; exit 1; }
 mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
 if ! grep -q 'sites-enabled' /etc/nginx/nginx.conf 2>/dev/null; then
@@ -217,3 +220,7 @@ if command -v pm2 &>/dev/null; then
 fi
 
 echo -e "\033[0;32m[✓]\033[0m Nginx + SSL configurado ✓"
+
+ETAPA_FIN=$(date +%s)
+DURACION_MIN=$(( (ETAPA_FIN - ETAPA_INICIO + 59) / 60 ))
+echo -e "\033[0;32m[✓]\033[0m Etapa completada en ${DURACION_MIN} minuto(s)"

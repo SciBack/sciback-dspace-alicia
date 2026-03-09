@@ -9,6 +9,8 @@
 # =============================================================================
 set -euo pipefail
 
+ETAPA_INICIO=$(date +%s)
+
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 BLUE='\033[0;34m'; CYAN='\033[0;36m'; NC='\033[0m'
 
@@ -39,9 +41,11 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 header "SciBack — Setup Input Forms UNIQ v2.0"
 log "Archivo: ${FORMS_FILE} | Log: ${LOG_FILE}"
 
+echo -e "\033[0;36m  Tiempo estimado: ~1-2 min\033[0m"
+
 header "Paso 1 — Prerequisitos"
 [[ -f "$FORMS_FILE" ]] || error "No se encontró: ${FORMS_FILE}"
-command -v xmllint &>/dev/null || apt-get install -y -qq libxml2-utils
+command -v xmllint &>/dev/null || apt-get install -y -q libxml2-utils
 
 VOC_DIR="${DSPACE_DIR}/config/controlled-vocabularies"
 for VOC in renati-type.xml renati-level.xml dc-type.xml dc-accessrights.xml dc-subject-ocde.xml; do
@@ -381,14 +385,18 @@ if 'uniqThesisPageOne' in content:
 new_content = content.replace(ANCHOR, fragment + '  ' + ANCHOR)
 with open(forms_file, 'w', encoding='utf-8') as f: f.write(new_content)
 # Verificación
+import re
 with open(forms_file) as f: check = f.read()
-empty = check.count('<dc-qualifier></dc-qualifier>') + check.count('<dc-qualifier/>')
+empty_in_uniq = 0
+for form_match in re.finditer(r'<form\s+name="uniqThesis[^"]*".*?</form>', check, re.DOTALL):
+    form_xml = form_match.group(0)
+    empty_in_uniq += form_xml.count('<dc-qualifier></dc-qualifier>') + form_xml.count('<dc-qualifier/>')
 print(f"Rows total: {check.count('<row>')}, uniqThesis refs: {check.count('uniqThesis')}")
-if empty > 0:
-    print(f"⚠️  ALERTA: {empty} dc-qualifier vacíos en archivo final")
+if empty_in_uniq > 0:
+    print(f"⚠️  ALERTA: {empty_in_uniq} dc-qualifier vacíos en formularios uniqThesis")
     sys.exit(1)
 else:
-    print("✓ 0 dc-qualifier vacíos en archivo final")
+    print("✓ 0 dc-qualifier vacíos en formularios uniqThesis")
 PYINSERT
 
 header "Paso 5 — Validación XML"
@@ -454,3 +462,7 @@ echo "             submission-name=\"uniqThesis\"/>"
 echo ""
 echo "  Backup: ${BACKUP} | Log: ${LOG_FILE}"
 log "Input forms completado ✓"
+
+ETAPA_FIN=$(date +%s)
+DURACION_MIN=$(( (ETAPA_FIN - ETAPA_INICIO + 59) / 60 ))
+echo -e "\033[0;32m[✓]\033[0m Etapa completada en ${DURACION_MIN} minuto(s)"
