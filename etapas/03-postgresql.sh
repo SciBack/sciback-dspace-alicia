@@ -12,7 +12,7 @@ echo -e "\033[0;36m  Etapa 03 — PostgreSQL 14\033[0m"
 echo -e "\033[0;34m═══════════════════════════════════════════════════\033[0m"
 
 echo -e "\n\033[0;34m--- Instalando PostgreSQL 14 (nativo Ubuntu 22.04) ---\033[0m"
-apt-get install -y -qq postgresql postgresql-contrib
+apt-get install -y -q postgresql postgresql-contrib
 systemctl enable --now postgresql
 
 echo -e "\n\033[0;34m--- Verificando que PostgreSQL responde ---\033[0m"

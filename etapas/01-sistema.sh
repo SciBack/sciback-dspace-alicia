@@ -20,11 +20,11 @@ echo -e "\033[0;32m[✓]\033[0m Timezone: $(timedatectl show --property=Timezone
 
 echo -e "\n\033[0;34m--- 1.2 Actualizando paquetes ---\033[0m"
 export DEBIAN_FRONTEND=noninteractive
-apt-get update -qq
-apt-get upgrade -y -qq
+apt-get update -q
+apt-get upgrade -y -q
 
 echo -e "\n\033[0;34m--- 1.3 Instalando paquetes base ---\033[0m"
-apt-get install -y -qq \
+apt-get install -y -q \
   curl wget git unzip htop nano \
   build-essential maven ant \
   postgresql-client \
