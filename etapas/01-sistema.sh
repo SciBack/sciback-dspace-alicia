@@ -15,7 +15,7 @@ echo -e "\033[0;36m  Etapa 01 — Preparación del sistema\033[0m"
 echo -e "\033[0;34m═══════════════════════════════════════════════════\033[0m"
 
 echo -e "\n\033[0;34m--- 1.1 Configurando timezone ---\033[0m"
-timedatectl set-timezone America/Lima
+timedatectl set-timezone "${TIMEZONE:-America/Lima}"
 echo -e "\033[0;32m[✓]\033[0m Timezone: $(timedatectl show --property=Timezone --value)"
 
 echo -e "\n\033[0;34m--- 1.2 Actualizando paquetes ---\033[0m"
