@@ -417,10 +417,10 @@ for FILE in renati-level.xml renati-type.xml dc-type.xml dc-accessrights.xml dc-
     NODES=$(xmllint --xpath 'count(//node)' "${VOCAB_DIR}/${FILE}" 2>/dev/null || true)
     NODES="${NODES:-?}"
     log "${FILE}: XML válido, ${NODES} nodos"
-    ((VALID++))
+    ((VALID++)) || true
   else
     warn "${FILE}: XML INVÁLIDO"
-    ((INVALID++))
+    ((INVALID++)) || true
   fi
 done
 
