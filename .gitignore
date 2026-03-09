@@ -1,0 +1,10 @@
+*.bak.*
+*.bak
+*.log
+/tmp/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
