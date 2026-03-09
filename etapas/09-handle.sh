@@ -7,11 +7,14 @@ ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.dspace.deploy}"
 [[ "${INSTALL_HANDLE:-yes}" == "skip" ]] && exit 99
 set -euo pipefail
 
+ETAPA_INICIO=$(date +%s)
+
 HANDLE_VER="${HANDLE_VERSION:-9.3.1}"
 
 echo -e "\n\033[0;34m═══════════════════════════════════════════════════\033[0m"
 echo -e "\033[0;36m  Etapa 09 — Handle Server ${HANDLE_VER} (solo descarga)\033[0m"
 echo -e "\033[0;34m═══════════════════════════════════════════════════\033[0m"
+echo -e "\033[0;36m  Tiempo estimado: ~1 min\033[0m"
 
 if [[ ! -d /opt/handle ]]; then
   cd /opt
@@ -44,3 +47,7 @@ systemctl daemon-reload
 echo -e "\033[1;33m[!]\033[0m Handle descargado pero NO configurado — ejecutar manualmente:"
 echo -e "\033[1;33m[!]\033[0m   sudo -u dspace /opt/handle/bin/hdl-setup-server /opt/handle/svr_1"
 echo -e "\033[1;33m[!]\033[0m   sudo systemctl enable --now handle"
+
+ETAPA_FIN=$(date +%s)
+DURACION_MIN=$(( (ETAPA_FIN - ETAPA_INICIO + 59) / 60 ))
+echo -e "\033[0;32m[✓]\033[0m Etapa completada en ${DURACION_MIN} minuto(s)"
