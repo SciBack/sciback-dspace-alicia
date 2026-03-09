@@ -42,7 +42,7 @@ log "Local:   ${LOCAL_DIR}"
 log "Log:     ${LOG_FILE}"
 
 [[ -d "$VOCAB_DIR" ]] || error "No existe: ${VOCAB_DIR}"
-command -v xmllint &>/dev/null || { info "Instalando xmllint..."; apt-get install -y -qq libxml2-utils; }
+command -v xmllint &>/dev/null || { info "Instalando xmllint..."; apt-get install -y -q libxml2-utils; }
 command -v python3 &>/dev/null || error "python3 requerido"
 
 # =============================================================================

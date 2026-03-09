@@ -65,7 +65,7 @@ sudo rm -f /var/log/sciback-*.log
 
 # Limpiar
 sudo systemctl daemon-reload
-sudo apt-get autoremove -y -qq 2>/dev/null || true
+sudo apt-get autoremove -y -q 2>/dev/null || true
 
 echo ""
 echo "✓ Limpieza completada. Listo para: sudo bash install.sh"
