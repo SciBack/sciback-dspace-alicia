@@ -41,7 +41,7 @@ log "Archivo: ${FORMS_FILE} | Log: ${LOG_FILE}"
 
 header "Paso 1 — Prerequisitos"
 [[ -f "$FORMS_FILE" ]] || error "No se encontró: ${FORMS_FILE}"
-command -v xmllint &>/dev/null || apt-get install -y -qq libxml2-utils
+command -v xmllint &>/dev/null || apt-get install -y -q libxml2-utils
 
 VOC_DIR="${DSPACE_DIR}/config/controlled-vocabularies"
 for VOC in renati-type.xml renati-level.xml dc-type.xml dc-accessrights.xml dc-subject-ocde.xml; do

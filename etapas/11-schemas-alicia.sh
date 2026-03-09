@@ -26,7 +26,7 @@ elif [[ -n "${1:-}" && "${1}" != --* ]]; then ENV_FILE="$1"; fi
 source "$ENV_FILE"
 
 for PKG in curl jq; do
-  command -v "$PKG" &>/dev/null || { info "Instalando ${PKG}..."; apt-get install -y -qq "$PKG"; }
+  command -v "$PKG" &>/dev/null || { info "Instalando ${PKG}..."; apt-get install -y -q "$PKG"; }
 done
 
 API_BASE="http://localhost:8080/server/api"

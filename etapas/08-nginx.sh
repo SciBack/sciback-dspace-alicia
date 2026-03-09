@@ -16,7 +16,7 @@ echo -e "\033[0;34m════════════════════�
 echo -e "\n\033[0;34m--- 8.1 Instalando Nginx ---\033[0m"
 apt-get remove --purge -y nginx nginx-common nginx-core 2>/dev/null || true
 apt-get install -y nginx
-apt-get install -y -qq certbot python3-certbot-nginx
+apt-get install -y -q certbot python3-certbot-nginx
 [[ -f /etc/nginx/nginx.conf ]] || { echo "[✗] nginx.conf no existe"; exit 1; }
 mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
 if ! grep -q 'sites-enabled' /etc/nginx/nginx.conf 2>/dev/null; then

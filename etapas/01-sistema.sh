@@ -60,7 +60,8 @@ else
   echo -e "\033[1;33m[!]\033[0m Usuario dspace ya existe — omitiendo"
 fi
 
+mkdir -p /home/dspace
+chown -R dspace:dspace /home/dspace
 mkdir -p "${DSPACE_DIR}"
 chown dspace:dspace "${DSPACE_DIR}"
 echo -e "\033[0;32m[✓]\033[0m Paso 1 completado ✓"
-chown -R dspace:dspace /home/dspace
