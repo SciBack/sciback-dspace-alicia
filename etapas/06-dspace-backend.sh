@@ -7,6 +7,8 @@ ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.dspace.deploy}"
 [[ "${INSTALL_DSPACE:-yes}" == "skip" ]] && exit 99
 set -euo pipefail
 
+ETAPA_INICIO=$(date +%s)
+
 DSPACE_DIR="${DSPACE_DIR:-/dspace}"
 DSPACE_SRC="/home/dspace/dspace-src"
 DSPACE_BASEURL="https://${DSPACE_HOSTNAME}"
@@ -15,18 +17,18 @@ DSPACE_REST_URL="https://${DSPACE_HOSTNAME}/server"
 echo -e "\n\033[0;34m═══════════════════════════════════════════════════\033[0m"
 echo -e "\033[0;36m  Etapa 06 — DSpace ${DSPACE_VERSION} (backend)\033[0m"
 echo -e "\033[0;34m═══════════════════════════════════════════════════\033[0m"
+echo -e "\033[0;36m  Tiempo estimado: ~15-20 min\033[0m"
 
 echo -e "\n\033[0;34m--- 6.1 Clonando repositorio ---\033[0m"
 if [[ ! -d "${DSPACE_SRC}" ]]; then
-  sudo -u dspace git clone --depth 1 --branch "dspace-${DSPACE_VERSION}" \
-    https://github.com/DSpace/DSpace.git "${DSPACE_SRC}"
+  su - dspace -c "git clone --depth 1 --branch 'dspace-${DSPACE_VERSION}' https://github.com/DSpace/DSpace.git '${DSPACE_SRC}'"
   echo -e "\033[0;32m[✓]\033[0m DSpace ${DSPACE_VERSION} clonado en ${DSPACE_SRC}"
 else
   echo -e "\033[1;33m[!]\033[0m Directorio ${DSPACE_SRC} ya existe — omitiendo clone"
 fi
 
 echo -e "\n\033[0;34m--- 6.2 Generando local.cfg desde .env ---\033[0m"
-cat > "${DSPACE_SRC}/dspace/config/local.cfg" <<EOF
+cat > "${DSPACE_SRC}/dspace/config/local.cfg" <<CFGEOF
 # Generado por SciBack — $(date '+%Y-%m-%d %H:%M:%S')
 dspace.dir = ${DSPACE_DIR}
 dspace.server.url = ${DSPACE_REST_URL}
@@ -42,16 +44,18 @@ mail.admin = ${MAIL_ADMIN}
 handle.prefix = ${HANDLE_PREFIX}
 oai.url = ${DSPACE_BASEURL}/oai
 solr.server = http://localhost:8983/solr
-EOF
+CFGEOF
 chown dspace:dspace "${DSPACE_SRC}/dspace/config/local.cfg"
 echo -e "\033[0;32m[✓]\033[0m local.cfg generado"
 
-echo -e "\n\033[0;34m--- 6.3 Compilando DSpace (esto puede tardar 10-15 min) ---\033[0m"
-sudo -u dspace bash -c "cd ${DSPACE_SRC} && mvn clean package -DskipTests"
+echo -e "\n\033[0;34m── 6.3 Compilando DSpace (~10-15 min) ──────────────────\033[0m"
+echo -e "\033[0;36m[→]\033[0m Compilando DSpace backend (~10-15 min, por favor espere)..."
+su - dspace -c "cd '${DSPACE_SRC}' && mvn clean package -DskipTests"
 echo -e "\033[0;32m[✓]\033[0m Compilación completada"
 
-echo -e "\n\033[0;34m--- 6.4 Instalando en ${DSPACE_DIR} ---\033[0m"
-sudo -u dspace bash -c "cd ${DSPACE_SRC}/dspace/target/dspace-installer && ant fresh_install"
+echo -e "\n\033[0;34m── 6.4 Instalando en ${DSPACE_DIR} (~3-5 min) ───────────\033[0m"
+echo -e "\033[0;36m[→]\033[0m Ejecutando ant fresh_install (~3-5 min)..."
+su - dspace -c "cd '${DSPACE_SRC}/dspace/target/dspace-installer' && ant fresh_install"
 echo -e "\033[0;32m[✓]\033[0m DSpace instalado en ${DSPACE_DIR}"
 
 echo -e "\n\033[0;34m--- 6.5 Creando cores Solr ---\033[0m"
@@ -75,15 +79,10 @@ for WEBAPP in server oai; do
 done
 
 echo -e "\n\033[0;34m--- 6.7 Migrando base de datos ---\033[0m"
-sudo -u dspace "${DSPACE_DIR}/bin/dspace" database migrate
+su - dspace -c "'${DSPACE_DIR}/bin/dspace' database migrate"
 
 echo -e "\n\033[0;34m--- 6.8 Creando administrador ---\033[0m"
-sudo -u dspace "${DSPACE_DIR}/bin/dspace" create-administrator \
-  -e "${ADMIN_EMAIL}" \
-  -f "${ADMIN_FIRSTNAME:-Admin}" \
-  -l "${ADMIN_LASTNAME:-SciBack}" \
-  -p "${ADMIN_PASSWORD}" \
-  -c "${ADMIN_LANGUAGE:-es}" || echo -e "\033[1;33m[!]\033[0m Admin ya existe o falló"
+su - dspace -c "'${DSPACE_DIR}/bin/dspace' create-administrator -e '${ADMIN_EMAIL}' -f '${ADMIN_FIRSTNAME:-Admin}' -l '${ADMIN_LASTNAME:-SciBack}' -p '${ADMIN_PASSWORD}' -c '${ADMIN_LANGUAGE:-es}'" || echo -e "\033[1;33m[!]\033[0m Admin ya existe o falló"
 
 echo -e "\n\033[0;34m--- 6.9 Iniciando Tomcat ---\033[0m"
 systemctl start tomcat9
@@ -102,3 +101,7 @@ done
 [[ "$TOMCAT_READY" == "true" ]] || { echo "[✗] Tomcat no respondió"; exit 1; }
 
 echo -e "\033[0;32m[✓]\033[0m DSpace backend desplegado ✓"
+
+ETAPA_FIN=$(date +%s)
+DURACION_MIN=$(( (ETAPA_FIN - ETAPA_INICIO + 59) / 60 ))
+echo -e "\033[0;32m[✓]\033[0m Etapa completada en ${DURACION_MIN} minuto(s)"

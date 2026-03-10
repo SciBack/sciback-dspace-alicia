@@ -6,6 +6,8 @@
 # =============================================================================
 set -euo pipefail
 
+ETAPA_INICIO=$(date +%s)
+
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 BLUE='\033[0;34m'; CYAN='\033[0;36m'; NC='\033[0m'
 
@@ -26,7 +28,7 @@ elif [[ -n "${1:-}" && "${1}" != --* ]]; then ENV_FILE="$1"; fi
 source "$ENV_FILE"
 
 for PKG in curl jq; do
-  command -v "$PKG" &>/dev/null || { info "Instalando ${PKG}..."; apt-get install -y -qq "$PKG"; }
+  command -v "$PKG" &>/dev/null || { info "Instalando ${PKG}..."; apt-get install -y -q "$PKG"; }
 done
 
 API_BASE="http://localhost:8080/server/api"
@@ -108,6 +110,8 @@ create_field() {
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
+echo -e "\033[0;36m  Tiempo estimado: ~1-2 min\033[0m"
+
 header "Paso 1 — Autenticación"
 authenticate
 
@@ -164,3 +168,7 @@ echo "  Creados: ${CREATED} | Omitidos: ${SKIPPED} | Errores: ${ERRORS}"
 echo "  Próximo: sudo bash setup-vocabularies.sh"
 echo "  Log: ${LOG_FILE}"
 [[ "$ERRORS" -eq 0 ]] && log "Listo ✓" || warn "${ERRORS} error(es)"
+
+ETAPA_FIN=$(date +%s)
+DURACION_MIN=$(( (ETAPA_FIN - ETAPA_INICIO + 59) / 60 ))
+echo -e "\033[0;32m[✓]\033[0m Etapa completada en ${DURACION_MIN} minuto(s)"

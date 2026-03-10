@@ -8,11 +8,14 @@ ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.dspace.deploy}"
 [[ "${INSTALL_SYSTEM:-yes}" == "skip" ]] && exit 99
 set -euo pipefail
 
+ETAPA_INICIO=$(date +%s)
+
 DSPACE_DIR="${DSPACE_DIR:-/dspace}"
 
 echo -e "\n\033[0;34m═══════════════════════════════════════════════════\033[0m"
 echo -e "\033[0;36m  Etapa 01 — Preparación del sistema\033[0m"
 echo -e "\033[0;34m═══════════════════════════════════════════════════\033[0m"
+echo -e "\033[0;36m  Tiempo estimado: ~3 min\033[0m"
 
 echo -e "\n\033[0;34m--- 1.1 Configurando timezone ---\033[0m"
 timedatectl set-timezone "${TIMEZONE:-America/Lima}"
@@ -60,7 +63,12 @@ else
   echo -e "\033[1;33m[!]\033[0m Usuario dspace ya existe — omitiendo"
 fi
 
+mkdir -p /home/dspace
+chown -R dspace:dspace /home/dspace
 mkdir -p "${DSPACE_DIR}"
 chown dspace:dspace "${DSPACE_DIR}"
 echo -e "\033[0;32m[✓]\033[0m Paso 1 completado ✓"
-chown -R dspace:dspace /home/dspace
+
+ETAPA_FIN=$(date +%s)
+DURACION_MIN=$(( (ETAPA_FIN - ETAPA_INICIO + 59) / 60 ))
+echo -e "\033[0;32m[✓]\033[0m Etapa completada en ${DURACION_MIN} minuto(s)"

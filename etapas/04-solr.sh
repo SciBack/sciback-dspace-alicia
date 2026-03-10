@@ -7,9 +7,12 @@ ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.dspace.deploy}"
 [[ "${INSTALL_SOLR:-yes}" == "skip" ]] && exit 99
 set -euo pipefail
 
+ETAPA_INICIO=$(date +%s)
+
 echo -e "\n\033[0;34m═══════════════════════════════════════════════════\033[0m"
 echo -e "\033[0;36m  Etapa 04 — Apache Solr ${SOLR_VERSION}\033[0m"
 echo -e "\033[0;34m═══════════════════════════════════════════════════\033[0m"
+echo -e "\033[0;36m  Tiempo estimado: ~5 min\033[0m"
 
 if [[ ! -d /opt/solr ]] && [[ ! -f /etc/init.d/solr ]]; then
   cd /opt
@@ -33,3 +36,7 @@ EOF
 
 systemctl restart solr
 echo -e "\033[0;32m[✓]\033[0m Solr configurado: heap ${SOLR_HEAP_MIN:-512m}-${SOLR_HEAP_MAX:-1024m}, bind 127.0.0.1"
+
+ETAPA_FIN=$(date +%s)
+DURACION_MIN=$(( (ETAPA_FIN - ETAPA_INICIO + 59) / 60 ))
+echo -e "\033[0;32m[✓]\033[0m Etapa completada en ${DURACION_MIN} minuto(s)"
