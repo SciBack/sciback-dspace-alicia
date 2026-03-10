@@ -45,7 +45,7 @@ echo -e "  Log:       \033[0;32m${LOG_FILE}\033[0m"
 echo -e "  Fecha:     $(date '+%Y-%m-%d %H:%M:%S %Z')"
 echo ""
 echo ""
-echo -e "[0;34mSe ejecutarán 13 etapas (tiempo estimado):[0m"
+echo -e "[0;34mSe ejecutarán 14 etapas (tiempo estimado):[0m"
 echo "  01. Sistema (paquetes, swap, usuario)     ~3 min"
 echo "  02. Java 17                               ~1 min"
 echo "  03. PostgreSQL 14                         ~2 min"
@@ -59,7 +59,8 @@ echo "  10. Cron jobs                             ~1 min"
 echo "  11. Schemas ALICIA                        ~1 min"
 echo "  12. Vocabularios CONCYTEC                 ~1 min"
 echo "  13. Formularios depósito                  ~1 min"
-echo -e "[0;36m  Total estimado: ~45 min[0m"
+echo "  14. Estructura SciBack Lab                ~1 min"
+echo -e "[0;36m  Total estimado: ~46 min[0m"
 echo ""
 # ─── Etapas ──────────────────────────────────────────────────
 ETAPAS=(
@@ -76,6 +77,7 @@ ETAPAS=(
   "11-schemas-alicia.sh"
   "12-vocabularios.sh"
   "13-formularios.sh"
+  "14-lab-structure.sh"
 )
 
 TOTAL=${#ETAPAS[@]}
