@@ -2,6 +2,7 @@
 # =============================================================================
 # SciBack — Etapa 14: Estructura inicial Lab (comunidades/colecciones)
 # Crea jerarquía desde variables LAB_* definidas en .env.dspace.deploy
+# Usa DSpace CLI: structure-builder
 # =============================================================================
 set -euo pipefail
 
@@ -10,28 +11,72 @@ ETAPA_INICIO=$(date +%s)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.dspace.deploy}"
 
+# Cargar variables si no vienen desde install.sh
 if [[ -z "${LAB_STRUCTURE:-}" || -z "${LAB_ROOT_COMMUNITY:-}" || -z "${LAB_SUBCOMMUNITIES:-}" ]]; then
-  [[ -f "$ENV_FILE" ]] && source "$ENV_FILE" || { echo "[✗] No se encontró: $ENV_FILE"; exit 1; }
+  [[ -f "$ENV_FILE" ]] && source "$ENV_FILE" || {
+    echo "[✗] No se encontró: $ENV_FILE"
+    exit 1
+  }
 fi
 
-[[ "${LAB_STRUCTURE:-false}" == "true" ]] || exit 99
+if [[ "${LAB_STRUCTURE:-false}" != "true" ]]; then
+  echo "[!] LAB_STRUCTURE no está en true. Etapa 14 omitida."
+  exit 99
+fi
 
 DSPACE_DIR="${DSPACE_DIR:-/dspace}"
 DSPACE_BIN="${DSPACE_DIR}/bin/dspace"
+ADMIN_EMAIL="${ADMIN_EMAIL:-}"
 LOG_FILE="/tmp/sciback-lab-structure.log"
+WORK_DIR="/tmp/sciback-lab-structure"
+EXPORT_XML="${WORK_DIR}/existing-structure.xml"
+IMPORT_XML="${WORK_DIR}/import-structure.xml"
+RESULT_XML="${WORK_DIR}/import-result.xml"
+
+mkdir -p "$WORK_DIR"
+sudo chown -R dspace:dspace "$WORK_DIR"
+sudo chmod 775 "$WORK_DIR"
+: > "$LOG_FILE"
 
 exec > >(tee -a "$LOG_FILE") 2>&1
 
-echo ""
-echo -e "\033[0;34m═══════════════════════════════════════════════════\033[0m"
-echo -e "\033[0;36m  Etapa 14 — Estructura inicial SciBack Lab\033[0m"
-echo -e "\033[0;34m═══════════════════════════════════════════════════\033[0m"
-echo -e "\033[0;36m  Tiempo estimado: ~1-2 min\033[0m"
+TOTAL_STEPS=6
 
-echo -e "\n\033[0;34m── 14.1 Validando prerrequisitos ─────────────────────────────\033[0m"
-[[ -x "$DSPACE_BIN" ]] || { echo "[✗] No ejecutable: ${DSPACE_BIN}"; exit 1; }
-[[ -n "${LAB_ROOT_COMMUNITY:-}" ]] || { echo "[✗] LAB_ROOT_COMMUNITY vacío"; exit 1; }
-[[ -n "${LAB_SUBCOMMUNITIES:-}" ]] || { echo "[✗] LAB_SUBCOMMUNITIES vacío"; exit 1; }
+progress_bar() {
+  local current="$1"
+  local total="$2"
+  local width=32
+  local filled=$(( current * width / total ))
+  local empty=$(( width - filled ))
+  local percent=$(( current * 100 / total ))
+
+  printf "\n["
+  printf "%0.s#" $(seq 1 "$filled")
+  printf "%0.s-" $(seq 1 "$empty")
+  printf "] %d%% (%d/%d)\n" "$percent" "$current" "$total"
+}
+
+step() {
+  local n="$1"
+  local msg="$2"
+  echo ""
+  echo -e "\033[0;34m── ${n}. ${msg} ─────────────────────────────\033[0m"
+  progress_bar "$n" "$TOTAL_STEPS"
+}
+
+run_dspace() {
+  sudo -u dspace "$DSPACE_BIN" "$@"
+}
+
+xml_escape() {
+  local s="$1"
+  s="${s//&/&amp;}"
+  s="${s//</&lt;}"
+  s="${s//>/&gt;}"
+  s="${s//\"/&quot;}"
+  s="${s//\'/&apos;}"
+  printf '%s' "$s"
+}
 
 normalize_name() {
   local input="$1"
@@ -40,131 +85,104 @@ normalize_name() {
     | sed -E 's/[^A-Z0-9]+/_/g; s/_+/_/g; s/^_+|_+$//g'
 }
 
-run_dspace_try() {
-  local output
-  output=$(su - dspace -c "$1" 2>&1) && { echo "$output"; return 0; }
-  echo "$output"
-  return 1
+trim() {
+  echo "$1" | sed -E 's/^[[:space:]]+|[[:space:]]+$//g'
 }
 
-find_handle_in_output() {
-  local txt="$1"
-  local h
-  h=$(echo "$txt" | grep -Eo "${HANDLE_PREFIX:-20\\.500\\.[0-9A-Z]+}/[0-9]+" | head -1 || true)
-  echo "$h"
-}
+generate_subcommunity_xml() {
+  local subcommunity_name="$1"
+  local norm var_name collections
+  local col col_trimmed
 
-create_community() {
-  local name="$1"
-  local parent_handle="${2:-}"
-  local output=""
-  local handle=""
+  norm="$(normalize_name "$subcommunity_name")"
+  var_name="LAB_COLLECTIONS__${norm}"
+  collections="${!var_name:-}"
 
-  echo -e "\033[0;36m[→]\033[0m Comunidad: ${name}"
+  echo "    <community>"
+  echo "      <name>$(xml_escape "$subcommunity_name")</name>"
 
-  if [[ -n "$parent_handle" ]]; then
-    output=$(run_dspace_try "'${DSPACE_BIN}' create-community --parent '${parent_handle}' --name '${name}'") || \
-    output=$(run_dspace_try "'${DSPACE_BIN}' create-community -p '${parent_handle}' -n '${name}'") || \
-    output=$(run_dspace_try "printf '%s\n' '${name}' | '${DSPACE_BIN}' create-community -p '${parent_handle}'") || true
+  if [[ -n "$collections" ]]; then
+    IFS='|' read -r -a COLS <<< "$collections"
+    for col in "${COLS[@]}"; do
+      col_trimmed="$(trim "$col")"
+      [[ -n "$col_trimmed" ]] || continue
+      echo "      <collection>"
+      echo "        <name>$(xml_escape "$col_trimmed")</name>"
+      echo "      </collection>"
+    done
   else
-    output=$(run_dspace_try "'${DSPACE_BIN}' create-community --name '${name}'") || \
-    output=$(run_dspace_try "'${DSPACE_BIN}' create-community -n '${name}'") || \
-    output=$(run_dspace_try "printf '%s\n' '${name}' | '${DSPACE_BIN}' create-community") || true
+    echo "      <!-- Sin colecciones definidas para ${var_name} -->"
   fi
 
-  if echo "$output" | grep -Eiq 'already exists|ya existe|duplicate|duplicado'; then
-    echo -e "\033[1;33m[!]\033[0m Comunidad ya existe: ${name}"
-    echo ""
-    return 0
-  fi
-
-  handle=$(find_handle_in_output "$output")
-  if [[ -n "$handle" ]]; then
-    echo -e "\033[0;32m[✓]\033[0m Comunidad creada: ${name} (${handle})"
-    echo "$handle"
-    return 0
-  fi
-
-  echo "$output" | grep -Eiq 'created|creado|success|éxito' && {
-    echo -e "\033[0;32m[✓]\033[0m Comunidad creada: ${name}"
-    echo ""
-    return 0
-  }
-
-  echo -e "\033[1;33m[!]\033[0m No se pudo confirmar creación de comunidad '${name}'. Continuando de forma idempotente."
-  echo ""
-  return 0
+  echo "    </community>"
 }
 
-create_collection() {
-  local name="$1"
-  local parent_handle="$2"
-  local output=""
+echo ""
+echo -e "\033[0;34m═══════════════════════════════════════════════════\033[0m"
+echo -e "\033[0;36m  Etapa 14 — Estructura inicial SciBack Lab\033[0m"
+echo -e "\033[0;34m═══════════════════════════════════════════════════\033[0m"
+echo -e "\033[0;36m  Tiempo estimado: ~1-2 min\033[0m"
 
-  echo -e "\033[0;36m[→]\033[0m Colección: ${name}"
+step 1 "Validando prerrequisitos"
+[[ -x "$DSPACE_BIN" ]] || { echo "[✗] No ejecutable: ${DSPACE_BIN}"; exit 1; }
+[[ -n "$ADMIN_EMAIL" ]] || { echo "[✗] ADMIN_EMAIL vacío"; exit 1; }
+[[ -n "${LAB_ROOT_COMMUNITY:-}" ]] || { echo "[✗] LAB_ROOT_COMMUNITY vacío"; exit 1; }
+[[ -n "${LAB_SUBCOMMUNITIES:-}" ]] || { echo "[✗] LAB_SUBCOMMUNITIES vacío"; exit 1; }
+echo "[✓] Prerrequisitos OK"
 
-  output=$(run_dspace_try "'${DSPACE_BIN}' create-collection --parent '${parent_handle}' --name '${name}'") || \
-  output=$(run_dspace_try "'${DSPACE_BIN}' create-collection -p '${parent_handle}' -n '${name}'") || \
-  output=$(run_dspace_try "printf '%s\n' '${name}' | '${DSPACE_BIN}' create-collection -p '${parent_handle}'") || true
+step 2 "Exportando estructura actual"
+run_dspace structure-builder -x -e "$ADMIN_EMAIL" -o "$EXPORT_XML"
+echo "[✓] Export generado: $EXPORT_XML"
 
-  if echo "$output" | grep -Eiq 'already exists|ya existe|duplicate|duplicado'; then
-    echo -e "\033[1;33m[!]\033[0m Colección ya existe: ${name}"
-    return 0
-  fi
+step 3 "Comprobando idempotencia"
+if grep -Fq "<name>${LAB_ROOT_COMMUNITY}</name>" "$EXPORT_XML"; then
+  echo "[!] La comunidad raíz '${LAB_ROOT_COMMUNITY}' ya existe. Etapa omitida de forma segura."
+  ETAPA_FIN=$(date +%s)
+  DURACION_MIN=$(( (ETAPA_FIN - ETAPA_INICIO + 59) / 60 ))
+  echo -e "\033[0;32m[✓]\033[0m Etapa completada en ${DURACION_MIN} minuto(s)"
+  exit 0
+fi
+echo "[✓] La comunidad raíz no existe aún"
 
-  if echo "$output" | grep -Eiq 'created|creado|success|éxito'; then
-    echo -e "\033[0;32m[✓]\033[0m Colección creada: ${name}"
-    return 0
-  fi
+step 4 "Generando XML de importación"
+{
+  echo '<?xml version="1.0" encoding="UTF-8"?>'
+  echo '<import_structure>'
+  echo '  <community>'
+  echo "    <name>$(xml_escape "$LAB_ROOT_COMMUNITY")</name>"
 
-  echo -e "\033[1;33m[!]\033[0m No se pudo confirmar creación de colección '${name}'. Continuando de forma idempotente."
-  return 0
-}
-
-echo -e "\n\033[0;34m── 14.2 Creando comunidad raíz ─────────────────────────────\033[0m"
-ROOT_HANDLE="$(create_community "${LAB_ROOT_COMMUNITY}" | tail -1)"
-
-echo -e "\n\033[0;34m── 14.3 Creando subcomunidades y colecciones ──────────────\033[0m"
-IFS='|' read -r -a SUBS <<< "${LAB_SUBCOMMUNITIES}"
-
-for SUB in "${SUBS[@]}"; do
-  SUB_TRIMMED="$(echo "$SUB" | sed -E 's/^\s+|\s+$//g')"
-  [[ -n "$SUB_TRIMMED" ]] || continue
-
-  NORM="$(normalize_name "$SUB_TRIMMED")"
-  VAR_NAME="LAB_COLLECTIONS__${NORM}"
-  COLLECTIONS="${!VAR_NAME:-}"
-
-  SUB_HANDLE=""
-  if [[ -n "$ROOT_HANDLE" ]]; then
-    SUB_HANDLE="$(create_community "$SUB_TRIMMED" "$ROOT_HANDLE" | tail -1)"
-  else
-    create_community "$SUB_TRIMMED" >/dev/null || true
-  fi
-
-  if [[ -z "$COLLECTIONS" ]]; then
-    echo -e "\033[1;33m[!]\033[0m ${VAR_NAME} no definido; subcomunidad sin colecciones."
-    continue
-  fi
-
-  IFS='|' read -r -a COLS <<< "$COLLECTIONS"
-  for COL in "${COLS[@]}"; do
-    COL_TRIMMED="$(echo "$COL" | sed -E 's/^\s+|\s+$//g')"
-    [[ -n "$COL_TRIMMED" ]] || continue
-
-    if [[ -n "$SUB_HANDLE" ]]; then
-      create_collection "$COL_TRIMMED" "$SUB_HANDLE"
-    else
-      echo -e "\033[1;33m[!]\033[0m Sin handle de subcomunidad '${SUB_TRIMMED}'. Colección '${COL_TRIMMED}' omitida de forma segura."
-    fi
+  IFS='|' read -r -a SUBS <<< "${LAB_SUBCOMMUNITIES}"
+  for sub in "${SUBS[@]}"; do
+    sub_trimmed="$(trim "$sub")"
+    [[ -n "$sub_trimmed" ]] || continue
+    generate_subcommunity_xml "$sub_trimmed"
   done
-done
 
-echo -e "\n\033[0;34m── 14.4 Reiniciando Tomcat ─────────────────────────────────\033[0m"
+  echo '  </community>'
+  echo '</import_structure>'
+} > "$IMPORT_XML"
+
+echo "[✓] XML de importación generado: $IMPORT_XML"
+echo ""
+echo "Contenido generado:"
+sed 's/^/  /' "$IMPORT_XML"
+
+step 5 "Importando estructura con structure-builder"
+run_dspace structure-builder -f "$IMPORT_XML" -e "$ADMIN_EMAIL" -o "$RESULT_XML"
+echo "[✓] Importación completada"
+echo "[✓] Resultado: $RESULT_XML"
+
+step 6 "Reiniciando Tomcat"
 systemctl restart tomcat9
-sleep 3
+sleep 5
+echo "[✓] Tomcat reiniciado"
 
-echo -e "\033[0;32m[✓]\033[0m Estructura Lab procesada. Log: ${LOG_FILE}"
+echo ""
+echo -e "\033[0;32m[✓]\033[0m Estructura Lab procesada correctamente"
+echo "    Comunidad raíz: ${LAB_ROOT_COMMUNITY}"
+echo "    Log: ${LOG_FILE}"
+echo "    XML importación: ${IMPORT_XML}"
+echo "    XML resultado:   ${RESULT_XML}"
 
 ETAPA_FIN=$(date +%s)
 DURACION_MIN=$(( (ETAPA_FIN - ETAPA_INICIO + 59) / 60 ))
