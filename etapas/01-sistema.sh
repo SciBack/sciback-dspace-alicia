@@ -18,8 +18,12 @@ echo -e "\033[0;34m════════════════════�
 echo -e "\033[0;36m  Tiempo estimado: ~3 min\033[0m"
 
 echo -e "\n\033[0;34m--- 1.1 Configurando timezone ---\033[0m"
-timedatectl set-timezone "${TIMEZONE:-America/Lima}"
-echo -e "\033[0;32m[✓]\033[0m Timezone: $(timedatectl show --property=Timezone --value)"
+if command -v timedatectl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
+  timedatectl set-timezone "${TIMEZONE:-America/Lima}"
+  echo -e "\033[0;32m[✓]\033[0m Timezone: $(timedatectl show --property=Timezone --value)"
+else
+  echo -e "\033[1;33m[!]\033[0m systemd/timedatectl no disponible — se omite cambio de timezone"
+fi
 
 echo -e "\n\033[0;34m--- 1.2 Actualizando paquetes ---\033[0m"
 export DEBIAN_FRONTEND=noninteractive
@@ -30,6 +34,7 @@ echo -e "\n\033[0;34m--- 1.3 Instalando paquetes base ---\033[0m"
 apt-get install -y -q \
   curl wget git unzip htop nano \
   build-essential maven ant \
+  locales \
   postgresql-client \
   fontconfig \
   software-properties-common \
@@ -40,17 +45,29 @@ apt-get install -y -q \
   jq libxml2-utils
 
 echo -e "\n\033[0;34m--- 1.4 Configurando locale ${DB_LOCALE:-es_PE.UTF-8} ---\033[0m"
-locale-gen "${DB_LOCALE:-es_PE.UTF-8}" || true
-update-locale || true
+if command -v locale-gen >/dev/null 2>&1; then
+  locale-gen "${DB_LOCALE:-es_PE.UTF-8}" || true
+else
+  echo -e "\033[1;33m[!]\033[0m locale-gen no disponible — omitiendo"
+fi
+
+if command -v update-locale >/dev/null 2>&1; then
+  update-locale || true
+else
+  echo -e "\033[1;33m[!]\033[0m update-locale no disponible — omitiendo"
+fi
 
 echo -e "\n\033[0;34m--- 1.5 Creando swap ${SWAP_SIZE:-4G} ---\033[0m"
 if [[ ! -f /swapfile ]]; then
   fallocate -l "${SWAP_SIZE:-4G}" /swapfile
   chmod 600 /swapfile
   mkswap /swapfile
-  swapon /swapfile
-  grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
-  echo -e "\033[0;32m[✓]\033[0m Swap de ${SWAP_SIZE:-4G} activado"
+  if swapon /swapfile; then
+    grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+    echo -e "\033[0;32m[✓]\033[0m Swap de ${SWAP_SIZE:-4G} activado"
+  else
+    echo -e "\033[1;33m[!]\033[0m No se pudo activar swap (entorno restringido) — continuando"
+  fi
 else
   echo -e "\033[1;33m[!]\033[0m Swap ya existe — omitiendo"
 fi

@@ -2,12 +2,42 @@
 # SciBack — limpiar.sh — Limpieza total para reinstalación desde cero
 set -euo pipefail
 
+ASSUME_YES=false
+
+while (($#)); do
+  case "$1" in
+    -y|--yes|--non-interactive)
+      ASSUME_YES=true
+      ;;
+    -h|--help)
+      cat <<USAGE
+Uso:
+  sudo bash limpiar.sh [--yes]
+
+Opciones:
+  -y, --yes, --non-interactive   Ejecuta limpieza sin confirmación interactiva
+  -h, --help                     Muestra esta ayuda
+USAGE
+      exit 0
+      ;;
+    *)
+      echo "[✗] Argumento no reconocido: $1"
+      exit 1
+      ;;
+  esac
+  shift
+done
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "⚠️  Esto borrará TODA la instalación DSpace. Ctrl+C para cancelar."
-read -p "¿Continuar? (s/N): " -n 1 -r
-echo ""
-[[ $REPLY =~ ^[Ss]$ ]] || exit 0
+if [[ "${ASSUME_YES}" != true ]]; then
+  echo "⚠️  Esto borrará TODA la instalación DSpace. Ctrl+C para cancelar."
+  read -p "¿Continuar? (s/N): " -n 1 -r
+  echo ""
+  [[ $REPLY =~ ^[Ss]$ ]] || exit 0
+else
+  echo "⚠️  Limpieza no interactiva habilitada (--yes)."
+fi
 
 # ── Parar servicios ──────────────────────────────────────────────────
 echo "→ Parando servicios..."
@@ -117,7 +147,7 @@ sudo rm -f /tmp/sciback-*.xml
 sudo rm -rf /tmp/sciback-lab-structure
 
 # ── Reload systemd y autoremove ─────────────────────────────────────
-sudo systemctl daemon-reload
+sudo systemctl daemon-reload 2>/dev/null || true
 sudo apt-get autoremove -y -q 2>/dev/null || true
 
 # Paquetes npm globales del sistema (yarn, pm2 residuales en /usr/lib)

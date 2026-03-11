@@ -16,7 +16,13 @@ echo -e "\033[0;36m  Tiempo estimado: ~2 min\033[0m"
 
 echo -e "\n\033[0;34m--- Instalando PostgreSQL 14 (nativo Ubuntu 22.04) ---\033[0m"
 apt-get install -y -q postgresql postgresql-contrib
-systemctl enable --now postgresql
+
+if [[ -d /run/systemd/system ]]; then
+  systemctl enable --now postgresql
+else
+  echo -e "\033[1;33m[!]\033[0m systemd no disponible — iniciando cluster con pg_ctlcluster"
+  pg_ctlcluster --skip-systemctl-redirect 16 main start || true
+fi
 
 echo -e "\n\033[0;34m--- Verificando que PostgreSQL responde ---\033[0m"
 sleep 3
