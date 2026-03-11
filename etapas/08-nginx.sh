@@ -27,15 +27,27 @@ if ! grep -q 'sites-enabled' /etc/nginx/nginx.conf 2>/dev/null; then
 fi
 echo -e "\033[0;32m[✓]\033[0m Nginx instalado"
 
-echo -e "\n\033[0;34m--- 8.2 Generando certificado SSL autofirmado temporal ---\033[0m"
-if [[ ! -f /etc/ssl/certs/dspace-selfsigned.crt ]]; then
-  openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /etc/ssl/private/dspace-selfsigned.key \
-    -out /etc/ssl/certs/dspace-selfsigned.crt \
-    -subj "/CN=${DSPACE_HOSTNAME}" 2>/dev/null
-  echo -e "\033[0;32m[✓]\033[0m Certificado SSL autofirmado generado"
+echo -e "\n\033[0;34m--- 8.2 Configurando SSL ---\033[0m"
+LE_CERT="/etc/letsencrypt/live/${DSPACE_HOSTNAME}/fullchain.pem"
+LE_KEY="/etc/letsencrypt/live/${DSPACE_HOSTNAME}/privkey.pem"
+SS_CERT="/etc/ssl/certs/dspace-selfsigned.crt"
+SS_KEY="/etc/ssl/private/dspace-selfsigned.key"
+
+if [[ -f "$LE_CERT" ]]; then
+  SSL_CERT="$LE_CERT"
+  SSL_KEY="$LE_KEY"
+  echo -e "\033[0;32m[✓]\033[0m Usando certificado Let's Encrypt existente"
 else
-  echo -e "\033[1;33m[!]\033[0m Certificado autofirmado ya existe"
+  SSL_CERT="$SS_CERT"
+  SSL_KEY="$SS_KEY"
+  if [[ ! -f "$SS_CERT" ]]; then
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+      -keyout "$SS_KEY" -out "$SS_CERT" \
+      -subj "/CN=${DSPACE_HOSTNAME}" 2>/dev/null
+    echo -e "\033[0;32m[✓]\033[0m Certificado SSL autofirmado generado"
+  else
+    echo -e "\033[1;33m[!]\033[0m Certificado autofirmado ya existe"
+  fi
 fi
 
 echo -e "\n\033[0;34m--- 8.3 Permisos para Nginx en assets del frontend ---\033[0m"
@@ -72,8 +84,8 @@ server {
     listen 443 ssl http2;
     server_name ${DSPACE_HOSTNAME};
 
-    ssl_certificate     /etc/ssl/certs/dspace-selfsigned.crt;
-    ssl_certificate_key /etc/ssl/private/dspace-selfsigned.key;
+    ssl_certificate     ${SSL_CERT};
+    ssl_certificate_key ${SSL_KEY};
     ssl_protocols       TLSv1.2 TLSv1.3;
     ssl_ciphers         HIGH:!aNULL:!MD5;
 
@@ -213,7 +225,9 @@ systemctl enable nginx
 systemctl restart nginx
 echo -e "\033[0;32m[✓]\033[0m Nginx configurado para ${DSPACE_HOSTNAME}"
 
-if [[ "${CERTBOT_AUTO:-false}" == "true" ]]; then
+if [[ -f "$LE_CERT" ]]; then
+  echo -e "\n\033[0;32m[✓]\033[0m Certificado Let's Encrypt ya existe — Certbot omitido"
+elif [[ "${CERTBOT_AUTO:-false}" == "true" ]]; then
   echo -e "\n\033[0;34m--- 8.7 Generando certificado SSL con Certbot ---\033[0m"
   certbot --nginx -d "${DSPACE_HOSTNAME}" \
     --email "${CERTBOT_EMAIL:-soporte@sciback.pe}" \
