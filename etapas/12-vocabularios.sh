@@ -1,16 +1,37 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # =============================================================================
-# SciBack — setup-vocabularies.sh v2.0
-# Descarga vocabularios CONCYTEC desde GitHub (SKOS-XML) y los convierte
-# al formato <node> de DSpace 7.6.6. Fallback: usa XMLs locales.
-# Fuente: https://github.com/concytec-pe/Peru-CRIS/vocabularios/
+# SciBack — Etapa 12: Vocabularios ALICIA para DSpace 7.6.6
+# Enfoque: repositorio institucional peruano
+# Instala vocabularios base alineados con la Guía ALICIA 2.1.0:
+#   - renati.level
+#   - renati.type
+#   - dc.type
+#   - dc.rights
+#   - dc.subject.ocde
 # =============================================================================
-set -euo pipefail
+
+set -Eeuo pipefail
 
 ETAPA_INICIO=$(date +%s)
 
-RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
-BLUE='\033[0;34m'; CYAN='\033[0;36m'; NC='\033[0m'
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.deploy}"
+
+[[ -f "${ENV_FILE}" ]] || { echo "[✗] No se encontró: ${ENV_FILE}"; exit 1; }
+
+set -a
+# shellcheck disable=SC1090
+source "${ENV_FILE}"
+set +a
+
+[[ "${INSTALL_VOCABULARIOS:-yes}" == "skip" ]] && exit 99
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m'
 
 log()    { echo -e "${GREEN}[✓]${NC} $1"; }
 warn()   { echo -e "${YELLOW}[!]${NC} $1"; }
@@ -22,49 +43,57 @@ header() {
   echo -e "${BLUE}═══════════════════════════════════════════════════${NC}"
 }
 
-ENV_FILE=".env.deploy"
-if [[ "${1:-}" == "--env" ]]; then ENV_FILE="${2:-.env.deploy}"
-elif [[ -n "${1:-}" && "${1}" != --* ]]; then ENV_FILE="$1"; fi
-[[ -f "$ENV_FILE" ]] || error "No se encontró: $ENV_FILE"
-source "$ENV_FILE"
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || {
+    info "Instalando dependencia faltante: $1"
+    apt-get install -y -q "$2"
+  }
+}
+
+require_command xmllint libxml2-utils
+require_command python3 python3
+require_command stat coreutils
+require_command tee coreutils
+require_command mktemp coreutils
+require_command cp coreutils
+require_command chmod coreutils
+require_command chown coreutils
+require_command rm coreutils
+require_command mkdir coreutils
 
 DSPACE_DIR="${DSPACE_DIR:-/dspace}"
 VOCAB_DIR="${DSPACE_DIR}/config/controlled-vocabularies"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOCAL_DIR="${SCRIPT_DIR}/controlled-vocabularies"
-TOMCAT_USER="${TOMCAT_USER:-dspace}"
+RUN_USER="${DSPACE_RUN_AS_USER:-dspace}"
+RUN_GROUP="${DSPACE_RUN_AS_GROUP:-dspace}"
 
-LOG_FILE="/tmp/sciback-vocabularies-$(date +%Y%m%d-%H%M%S).log"
-exec > >(tee -a "$LOG_FILE") 2>&1
+LOG_FILE="/tmp/sciback-vocabularios-$(date +%Y%m%d-%H%M%S).log"
+exec > >(tee -a "${LOG_FILE}") 2>&1
 
-header "SciBack — Setup Vocabularios ALICIA v2.0"
+[[ -d "${VOCAB_DIR}" ]] || error "No existe directorio de vocabularios: ${VOCAB_DIR}"
+
+FILES=(
+  "renati-level.xml"
+  "renati-type.xml"
+  "dc-type.xml"
+  "dc-accessrights.xml"
+  "dc-subject-ocde.xml"
+)
+
+header "Etapa 12 — Vocabularios ALICIA"
 log "DSpace:  ${DSPACE_DIR}"
 log "Destino: ${VOCAB_DIR}"
-log "Local:   ${LOCAL_DIR}"
 log "Log:     ${LOG_FILE}"
-
-[[ -d "$VOCAB_DIR" ]] || error "No existe: ${VOCAB_DIR}"
-command -v xmllint &>/dev/null || { info "Instalando xmllint..."; apt-get install -y -q libxml2-utils; }
-command -v python3 &>/dev/null || error "python3 requerido"
-
-# =============================================================================
-# GENERADOR: Crear XMLs en formato DSpace <node> desde datos CONCYTEC oficiales
-# Fuente: https://purl.org/pe-repo/renati/level — CONCYTEC/SUNEDU
-#         https://purl.org/pe-repo/renati/type  — CONCYTEC/SUNEDU
-#         https://purl.org/pe-repo/ocde/ford    — OCDE Frascati
-# =============================================================================
+echo -e "${CYAN}  Tiempo estimado: ~1-2 min${NC}"
 
 generate_vocabularies() {
-  local DEST_DIR="$1"
-  info "Generando vocabularios desde datos oficiales CONCYTEC..."
+  local dest_dir="$1"
 
-  # ─── renati-level.xml ─────────────────────────────────────────────────────
-  # Fuente: https://purl.org/pe-repo/renati/level — Ley 30220 / SUNEDU
-  cat > "${DEST_DIR}/renati-level.xml" << 'RENATI_LEVEL'
+  info "Generando vocabularios base para DSpace 7.6.6 + Guía ALICIA 2.1.0..."
+
+  cat > "${dest_dir}/renati-level.xml" <<'RENATI_LEVEL'
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Vocabulario: Grados académicos y títulos profesionales (RENATI)
-     Fuente: https://purl.org/pe-repo/renati/level — Ley 30220 / SUNEDU
-     Generado por SciBack desde datos oficiales CONCYTEC -->
+     Uso previsto: renati.level -->
 <node id="renati-level" label="Nivel de grado académico">
   <isComposedBy>
     <node id="bachiller" label="Bachiller">
@@ -85,15 +114,12 @@ generate_vocabularies() {
   </isComposedBy>
 </node>
 RENATI_LEVEL
-  log "renati-level.xml generado (5 niveles)"
+  log "renati-level.xml generado"
 
-  # ─── renati-type.xml ──────────────────────────────────────────────────────
-  # Fuente: https://purl.org/pe-repo/renati/type — Reglamento RENATI
-  cat > "${DEST_DIR}/renati-type.xml" << 'RENATI_TYPE'
+  cat > "${dest_dir}/renati-type.xml" <<'RENATI_TYPE'
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Vocabulario: Tipos de trabajo de investigación (RENATI)
-     Fuente: https://purl.org/pe-repo/renati/type — RCD N° 033-2016-SUNEDU/CD
-     Generado por SciBack desde datos oficiales CONCYTEC -->
+     Uso previsto: renati.type -->
 <node id="renati-type" label="Tipo de trabajo de investigación">
   <isComposedBy>
     <node id="tesis" label="Tesis">
@@ -111,15 +137,12 @@ RENATI_LEVEL
   </isComposedBy>
 </node>
 RENATI_TYPE
-  log "renati-type.xml generado (4 tipos)"
+  log "renati-type.xml generado"
 
-  # ─── dc-type.xml ──────────────────────────────────────────────────────────
-  # Tipos de recurso OpenAIRE/COAR compatibles con ALICIA
-  cat > "${DEST_DIR}/dc-type.xml" << 'DC_TYPE'
+  cat > "${dest_dir}/dc-type.xml" <<'DC_TYPE'
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Vocabulario: Tipos de recurso OpenAIRE/COAR
-     Compatible con Guía ALICIA 2.1.0
-     Generado por SciBack -->
+<!-- Vocabulario: Tipos de recurso para DSpace 7.6.6 + ALICIA
+     Uso previsto: dc.type -->
 <node id="dc-type" label="Tipo de recurso">
   <isComposedBy>
     <node id="info:eu-repo/semantics/bachelorThesis" label="Tesis de pregrado">
@@ -155,15 +178,12 @@ RENATI_TYPE
   </isComposedBy>
 </node>
 DC_TYPE
-  log "dc-type.xml generado (10 tipos)"
+  log "dc-type.xml generado"
 
-  # ─── dc-accessrights.xml ──────────────────────────────────────────────────
-  # Condiciones de acceso COAR — Obligatorio ALICIA
-  cat > "${DEST_DIR}/dc-accessrights.xml" << 'DC_ACCESS'
+  cat > "${dest_dir}/dc-accessrights.xml" <<'DC_ACCESS'
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Vocabulario: Condiciones de acceso COAR
-     Fuente: http://purl.org/coar/access_right
-     Obligatorio Guía ALICIA 2.1.0 -->
+<!-- Vocabulario: Condiciones de acceso
+     Uso previsto: dc.rights -->
 <node id="dc-accessrights" label="Condición de acceso">
   <isComposedBy>
     <node id="info:eu-repo/semantics/openAccess" label="Acceso abierto">
@@ -181,16 +201,12 @@ DC_TYPE
   </isComposedBy>
 </node>
 DC_ACCESS
-  log "dc-accessrights.xml generado (4 niveles)"
+  log "dc-accessrights.xml generado"
 
-  # ─── dc-subject-ocde.xml ─────────────────────────────────────────────────
-  # Clasificación OCDE/FORD — Fuente: purl.org/pe-repo/ocde/ford
-  # Estructura jerárquica: Área > Campo > Disciplina
-  cat > "${DEST_DIR}/dc-subject-ocde.xml" << 'OCDE_FORD'
+  cat > "${dest_dir}/dc-subject-ocde.xml" <<'OCDE_FORD'
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Vocabulario: Campos de Investigación y Desarrollo OCDE/FORD
-     Fuente: https://purl.org/pe-repo/ocde/ford — Manual Frascati (OCDE)
-     Obligatorio Guía ALICIA 2.1.0 — Generado por SciBack -->
+<!-- Vocabulario: Clasificación OCDE/FORD
+     Uso previsto: dc.subject.ocde -->
 <node id="dc-subject-ocde" label="Clasificación OCDE/FORD">
   <isComposedBy>
 
@@ -373,83 +389,80 @@ DC_ACCESS
   </isComposedBy>
 </node>
 OCDE_FORD
-  log "dc-subject-ocde.xml generado (6 áreas OCDE + sub-campos)"
+  log "dc-subject-ocde.xml generado"
 }
-
-# =============================================================================
-# EJECUCIÓN
-# =============================================================================
 
 echo -e "\033[0;36m  Tiempo estimado: ~1-2 min\033[0m"
 
-header "Paso 1 — Generando vocabularios formato DSpace"
-info "Datos oficiales CONCYTEC: purl.org/pe-repo/*"
+TEMP_DIR="$(mktemp -d)"
+BACKUP_DIR="/tmp/sciback-voc-backup-$(date +%Y%m%d-%H%M%S)"
+mkdir -p "${BACKUP_DIR}"
 
-TEMP_DIR=$(mktemp -d)
-generate_vocabularies "$TEMP_DIR"
+cleanup() {
+  rm -rf "${TEMP_DIR}"
+}
+trap cleanup EXIT
+
+header "Paso 1 — Generando vocabularios formato DSpace"
+generate_vocabularies "${TEMP_DIR}"
 
 header "Paso 2 — Instalando en DSpace"
-
-BACKUP_DIR="/tmp/sciback-voc-backup-$(date +%Y%m%d-%H%M%S)"
-mkdir -p "$BACKUP_DIR"
-
-for FILE in renati-level.xml renati-type.xml dc-type.xml dc-accessrights.xml dc-subject-ocde.xml; do
-  # Backup existente
-  if [[ -f "${VOCAB_DIR}/${FILE}" ]]; then
-    cp "${VOCAB_DIR}/${FILE}" "${BACKUP_DIR}/${FILE}"
-    info "Backup: ${FILE}"
+for file in "${FILES[@]}"; do
+  if [[ -f "${VOCAB_DIR}/${file}" ]]; then
+    cp "${VOCAB_DIR}/${file}" "${BACKUP_DIR}/${file}"
+    info "Backup: ${file}"
   fi
 
-  # Instalar
-  cp "${TEMP_DIR}/${FILE}" "${VOCAB_DIR}/${FILE}"
-  chown "${TOMCAT_USER}:${TOMCAT_USER}" "${VOCAB_DIR}/${FILE}" 2>/dev/null || true
-  chmod 644 "${VOCAB_DIR}/${FILE}"
-  log "Instalado: ${FILE}"
+  cp "${TEMP_DIR}/${file}" "${VOCAB_DIR}/${file}"
+  chown "${RUN_USER}:${RUN_GROUP}" "${VOCAB_DIR}/${file}" 2>/dev/null || true
+  chmod 644 "${VOCAB_DIR}/${file}"
+  log "Instalado: ${file}"
 done
 
-rm -rf "$TEMP_DIR"
-
 header "Paso 3 — Validación XML"
+VALID=0
+INVALID=0
 
-VALID=0; INVALID=0
-for FILE in renati-level.xml renati-type.xml dc-type.xml dc-accessrights.xml dc-subject-ocde.xml; do
-  if xmllint --noout "${VOCAB_DIR}/${FILE}" 2>/dev/null; then
-    NODES=$(xmllint --xpath 'count(//node)' "${VOCAB_DIR}/${FILE}" 2>/dev/null || true)
-    NODES="${NODES:-?}"
-    log "${FILE}: XML válido, ${NODES} nodos"
+for file in "${FILES[@]}"; do
+  if xmllint --noout "${VOCAB_DIR}/${file}" 2>/dev/null; then
+    nodes="$(xmllint --xpath 'count(//node)' "${VOCAB_DIR}/${file}" 2>/dev/null || true)"
+    nodes="${nodes:-?}"
+    log "${file}: XML válido, ${nodes} nodos"
     ((VALID++)) || true
   else
-    warn "${FILE}: XML INVÁLIDO"
+    warn "${file}: XML inválido"
     ((INVALID++)) || true
   fi
 done
 
 header "Paso 4 — Verificación final"
-echo ""
-echo "  Vocabularios en ${VOCAB_DIR}:"
-for FILE in renati-level.xml renati-type.xml dc-type.xml dc-accessrights.xml dc-subject-ocde.xml; do
-  if [[ -f "${VOCAB_DIR}/${FILE}" ]]; then
-    SIZE=$(stat -c%s "${VOCAB_DIR}/${FILE}")
-    log "  ${FILE} (${SIZE} bytes)"
+echo "  Vocabularios instalados en ${VOCAB_DIR}:"
+for file in "${FILES[@]}"; do
+  if [[ -f "${VOCAB_DIR}/${file}" ]]; then
+    size="$(stat -c%s "${VOCAB_DIR}/${file}")"
+    log "  ${file} (${size} bytes)"
   fi
 done
 
-header "✅ Vocabularios ALICIA v2.0 — Instalados"
-echo ""
+header "Etapa 12 — Completada"
 echo "  Válidos: ${VALID} | Inválidos: ${INVALID}"
 echo "  Backup: ${BACKUP_DIR}"
-echo ""
-echo "  Mapeo en submission-forms.xml:"
-echo "    renati.level     → <vocabulary>renati-level</vocabulary>"
-echo "    renati.type      → <vocabulary>renati-type</vocabulary>"
-echo "    dc.type          → <vocabulary>dc-type</vocabulary>"
-echo "    dc.rights        → <vocabulary>dc-accessrights</vocabulary>"
-echo "    dc.subject.ocde  → <vocabulary>dc-subject-ocde</vocabulary>"
-echo ""
-echo "  Próximo: sudo bash setup-input-forms.sh"
+echo "  Mapeo esperado en submission-forms.xml:"
+echo "    renati.level         → <vocabulary>renati-level</vocabulary>"
+echo "    renati.type          → <vocabulary>renati-type</vocabulary>"
+echo "    dc.type              → <vocabulary>dc-type</vocabulary>"
+echo "    dc.rights.accessRights → <vocabulary>dc-accessrights</vocabulary>"
+echo "    dc.subject.ocde      → <vocabulary>dc-subject-ocde</vocabulary>"
+echo "  Siguiente etapa: 13-formularios.sh"
 echo "  Log: ${LOG_FILE}"
-log "Vocabularios listos ✓"
+
+if [[ "${INVALID}" -eq 0 ]]; then
+  log "Vocabularios listos"
+else
+  warn "${INVALID} archivo(s) inválido(s)"
+fi
 
 ETAPA_FIN=$(date +%s)
 DURACION_MIN=$(( (ETAPA_FIN - ETAPA_INICIO + 59) / 60 ))
-echo -e "\033[0;32m[✓]\033[0m Etapa completada en ${DURACION_MIN} minuto(s)"
+echo -e "\033[0;32m[✓]\033[0m Etapa completada en ${DURACION_MIN} minuto(s)"``` reescribe todo el código correctamente según tu recomendación para que sea coherente con el proyecto
+y a la guia Alicia 2.1.0
