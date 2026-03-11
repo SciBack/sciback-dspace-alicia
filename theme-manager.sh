@@ -1,18 +1,25 @@
 #!/usr/bin/env bash
+# =============================================================================
+# SciBack — theme-manager.sh
+# Dispatcher modular para personalización de theme en DSpace 7.6.6
+# Ejecuta etapas del theme-manager de forma completa o parcial
+# =============================================================================
+
 set -Eeuo pipefail
 
 readonly TM_PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly THEME_DIR="${TM_PROJECT_DIR}/theme-manager"
+readonly COMMON_LIB="${THEME_DIR}/lib/common.sh"
 
 ENV_FILE="${ENV_FILE:-${TM_PROJECT_DIR}/.env.theme-manager}"
 
-if [[ ! -f "${THEME_DIR}/lib/common.sh" ]]; then
-  echo "[ERROR] No se encontró ${THEME_DIR}/lib/common.sh"
+if [[ ! -f "${COMMON_LIB}" ]]; then
+  echo "[ERROR] No se encontró ${COMMON_LIB}"
   exit 1
 fi
 
 # shellcheck disable=SC1091
-source "${THEME_DIR}/lib/common.sh"
+source "${COMMON_LIB}"
 
 register_error_trap
 
@@ -35,23 +42,26 @@ readonly STAGES=(
 usage() {
   cat <<USAGE
 Uso:
-  bash theme-manager.sh [--env /ruta/.env] [--stage 03-register-theme]
+  bash theme-manager.sh [--env /ruta/.env.theme-manager]
+                        [--stage 03-register-theme]
+                        [--from-stage 05-apply-colors]
+                        [--list-stages]
 
 Opciones:
-  --env <path>       Ruta del archivo de entorno (default: ${TM_PROJECT_DIR}/.env.theme-manager)
-  --stage <name>     Ejecuta una etapa individual (por nombre o prefijo numérico)
-  --list-stages      Lista etapas disponibles
+  --env <path>         Ruta del archivo de entorno
+                       (default: ${TM_PROJECT_DIR}/.env.theme-manager)
+
+  --stage <name>       Ejecuta solo una etapa
+                       Ej: --stage 03-register-theme
+                           --stage 03
+
+  --from-stage <name>  Ejecuta desde una etapa hasta el final
+                       Ej: --from-stage 05-apply-colors
+                           --from-stage 05
+
+  --list-stages        Lista etapas disponibles
+  -h, --help           Muestra esta ayuda
 USAGE
-}
-
-run_stage() {
-  local stage_name="$1"
-  local stage_script="${THEME_DIR}/stages/${stage_name}.sh"
-
-  [[ -f "${stage_script}" ]] || die "No existe etapa: ${stage_name}"
-
-  log_info "Ejecutando etapa ${stage_name}"
-  ENV_FILE="${ENV_FILE}" bash "${stage_script}"
 }
 
 resolve_stage() {
@@ -68,7 +78,22 @@ resolve_stage() {
   return 1
 }
 
+run_stage() {
+  local stage_name="$1"
+  local stage_script="${THEME_DIR}/stages/${stage_name}.sh"
+
+  [[ -f "${stage_script}" ]] || die "No existe etapa: ${stage_name}"
+
+  log_info "Ejecutando etapa ${stage_name}"
+  ENV_FILE="${ENV_FILE}" bash "${stage_script}"
+}
+
+list_stages() {
+  printf '%s\n' "${STAGES[@]}"
+}
+
 SELECTED_STAGE=""
+FROM_STAGE=""
 
 while (($#)); do
   case "$1" in
@@ -82,8 +107,13 @@ while (($#)); do
       SELECTED_STAGE="${1:-}"
       [[ -n "${SELECTED_STAGE}" ]] || die "Debes indicar una etapa tras --stage"
       ;;
+    --from-stage)
+      shift
+      FROM_STAGE="${1:-}"
+      [[ -n "${FROM_STAGE}" ]] || die "Debes indicar una etapa tras --from-stage"
+      ;;
     --list-stages)
-      printf '%s\n' "${STAGES[@]}"
+      list_stages
       exit 0
       ;;
     -h|--help)
@@ -97,20 +127,55 @@ while (($#)); do
   shift
 done
 
+[[ -z "${SELECTED_STAGE}" || -z "${FROM_STAGE}" ]] || die "No puedes usar --stage y --from-stage al mismo tiempo"
 [[ -f "${ENV_FILE}" ]] || die "No existe el archivo de entorno: ${ENV_FILE}"
 
 export ENV_FILE
+export TM_PROJECT_DIR
+export THEME_DIR
 
 ensure_dir "${THEME_DIR}/logs"
 ensure_dir "${THEME_DIR}/backups"
 
-log_info "Usando archivo de entorno: ${ENV_FILE}"
+log_info "══════════════════════════════════════════════════════════"
+log_info "SciBack — Theme Manager DSpace 7.6.6"
+log_info "Archivo de entorno: ${ENV_FILE}"
+log_info "Directorio base: ${THEME_DIR}"
+log_info "══════════════════════════════════════════════════════════"
 
 if [[ -n "${SELECTED_STAGE}" ]]; then
   resolved="$(resolve_stage "${SELECTED_STAGE}")" || die "Etapa inválida: ${SELECTED_STAGE}"
   run_stage "${resolved}"
-else
+elif [[ -n "${FROM_STAGE}" ]]; then
+  resolved_from="$(resolve_stage "${FROM_STAGE}")" || die "Etapa inválida: ${FROM_STAGE}"
+
+  start_running=false
+  total=${#STAGES[@]}
+  current=0
+
   for stage in "${STAGES[@]}"; do
+    ((current+=1)) || true
+
+    if [[ "${stage}" == "${resolved_from}" ]]; then
+      start_running=true
+    fi
+
+    if [[ "${start_running}" == "true" ]]; then
+      log_info "──────────────────────────────────────────────────────────"
+      log_info "Etapa ${current}/${total}: ${stage}"
+      log_info "──────────────────────────────────────────────────────────"
+      run_stage "${stage}"
+    fi
+  done
+else
+  total=${#STAGES[@]}
+  current=0
+
+  for stage in "${STAGES[@]}"; do
+    ((current+=1)) || true
+    log_info "──────────────────────────────────────────────────────────"
+    log_info "Etapa ${current}/${total}: ${stage}"
+    log_info "──────────────────────────────────────────────────────────"
     run_stage "${stage}"
   done
 fi
