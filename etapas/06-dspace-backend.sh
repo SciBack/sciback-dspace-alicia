@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # SciBack — Etapa 06: DSpace Backend
+# FIX: forward-headers-strategy en local.cfg (CSRF/CORS detrás de Nginx)
+# FIX: HOME explícito en bloques sudo -u para evitar EACCES
 
 set -Eeuo pipefail
 
@@ -19,8 +21,9 @@ ETAPA_INICIO=$(date +%s)
 
 RUN_USER="${DSPACE_RUN_AS_USER:-dspace}"
 RUN_GROUP="${DSPACE_RUN_AS_GROUP:-dspace}"
+RUN_HOME="/home/${RUN_USER}"
 DSPACE_DIR="${DSPACE_DIR:-/dspace}"
-DSPACE_SRC="${DSPACE_SRC_DIR:-/home/${RUN_USER}/dspace-src}"
+DSPACE_SRC="${DSPACE_SRC_DIR:-${RUN_HOME}/dspace-src}"
 DSPACE_BASEURL="https://${DSPACE_HOSTNAME}"
 DSPACE_REST_URL="https://${DSPACE_HOSTNAME}/server"
 DSPACE_INSTALL_MODE="${DSPACE_INSTALL_MODE:-fresh_install}"
@@ -35,6 +38,15 @@ require_command() {
     echo "[✗] Falta comando requerido: $1"
     exit 1
   }
+}
+
+# ── Helper: ejecutar comando como RUN_USER con HOME correcto ────────
+run_as_dspace() {
+  sudo -u "${RUN_USER}" HOME="${RUN_HOME}" bash -lc "
+    set -Eeuo pipefail
+    export HOME='${RUN_HOME}'
+    $1
+  "
 }
 
 require_command git
@@ -62,10 +74,7 @@ echo -e "\033[0;36m  Tiempo estimado: ~15-20 min\033[0m"
 
 echo -e "\n\033[0;34m--- 6.1 Clonando repositorio ---\033[0m"
 if [[ ! -d "${DSPACE_SRC}" ]]; then
-  sudo -u "${RUN_USER}" bash -lc "
-    set -Eeuo pipefail
-    git clone --depth 1 --branch 'dspace-${DSPACE_VERSION}' https://github.com/DSpace/DSpace.git '${DSPACE_SRC}'
-  "
+  run_as_dspace "git clone --depth 1 --branch 'dspace-${DSPACE_VERSION}' https://github.com/DSpace/DSpace.git '${DSPACE_SRC}'"
   echo -e "\033[0;32m[✓]\033[0m DSpace ${DSPACE_VERSION} clonado en ${DSPACE_SRC}"
 else
   echo -e "\033[1;33m[!]\033[0m Directorio ${DSPACE_SRC} ya existe — omitiendo clone"
@@ -81,36 +90,33 @@ dspace.server.url = ${DSPACE_REST_URL}
 dspace.ui.url = ${DSPACE_BASEURL}
 dspace.name = ${DSPACE_NAME}
 
+# ── Base de datos ────────────────────────────────────────
 db.url = jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
 db.username = ${DB_USER}
 db.password = ${DB_PASSWORD}
 
+# ── Email ────────────────────────────────────────────────
 mail.server = ${MAIL_SERVER}
 mail.server.port = ${MAIL_PORT}
 mail.from.address = ${MAIL_FROM}
 mail.admin = ${MAIL_ADMIN}
 
+# ── Handle / OAI / Solr ─────────────────────────────────
 handle.prefix = ${HANDLE_PREFIX}
-oai.url = ${DSPACE_BASEURL}/oai
+oai.url = ${DSPACE_BASEURL}/server/oai
 solr.server = ${SOLR_URL}
 
+# ── Locale ───────────────────────────────────────────────
 default.locale = ${ADMIN_LANGUAGE:-es}
 
-# ── CORS ──────────────────────────────────────────────
-# Permite que el frontend Angular se comunique con la REST API
-rest.cors.allowed-origins = ${DSPACE_BASEURL}
-
-# ── Proxy inverso ─────────────────────────────────────
-# Indica que DSpace está detrás de un reverse proxy (Nginx)
-proxies.trusted.ipranges = 127.0.0.1
-
-# Usa los headers X-Forwarded-* enviados por Nginx
-# Necesario para CSRF tokens y cookies seguras
-server.forwarded-strategy = NATIVE
+# ── Proxy headers — CRÍTICO para Nginx reverse proxy ────
+# Sin esto, Spring Boot ignora X-Forwarded-Proto/Host y
+# genera URLs http:// rompiendo CSRF/CORS tras Nginx SSL
+server.forward-headers-strategy = FRAMEWORK
 CFGEOF
 
 chown "${RUN_USER}:${RUN_GROUP}" "${LOCAL_CFG_PATH}"
-echo -e "\033[0;32m[✓]\033[0m local.cfg generado"
+echo -e "\033[0;32m[✓]\033[0m local.cfg generado (con forward-headers-strategy)"
 
 echo -e "\n\033[0;34m--- 6.3 Verificando conectividad base ---\033[0m"
 if curl -fsS "${SOLR_URL}/admin/info/system" >/dev/null 2>&1; then
@@ -121,8 +127,7 @@ fi
 
 echo -e "\n\033[0;34m── 6.4 Compilando DSpace (~10-15 min) ──────────────────\033[0m"
 echo -e "\033[0;36m[→]\033[0m Compilando DSpace backend..."
-sudo -u "${RUN_USER}" bash -lc "
-  set -Eeuo pipefail
+run_as_dspace "
   cd '${DSPACE_SRC}'
   mvn clean package ${DSPACE_MAVEN_BUILD_ARGS}
 "
@@ -130,8 +135,7 @@ echo -e "\033[0;32m[✓]\033[0m Compilación completada"
 
 echo -e "\n\033[0;34m── 6.5 Instalando en ${DSPACE_DIR} (~3-5 min) ───────────\033[0m"
 echo -e "\033[0;36m[→]\033[0m Ejecutando ant ${DSPACE_INSTALL_MODE}..."
-sudo -u "${RUN_USER}" bash -lc "
-  set -Eeuo pipefail
+run_as_dspace "
   cd '${DSPACE_SRC}/dspace/target/dspace-installer'
   ant '${DSPACE_INSTALL_MODE}'
 "
@@ -173,15 +177,11 @@ for WEBAPP in server oai; do
 done
 
 echo -e "\n\033[0;34m--- 6.8 Migrando base de datos ---\033[0m"
-sudo -u "${RUN_USER}" bash -lc "
-  set -Eeuo pipefail
-  '${DSPACE_DIR}/bin/dspace' database migrate
-"
+run_as_dspace "'${DSPACE_DIR}/bin/dspace' database migrate"
 echo -e "\033[0;32m[✓]\033[0m Migración de base de datos completada"
 
 echo -e "\n\033[0;34m--- 6.9 Creando administrador ---\033[0m"
-if sudo -u "${RUN_USER}" bash -lc "
-  set -Eeuo pipefail
+if run_as_dspace "
   '${DSPACE_DIR}/bin/dspace' create-administrator \
     -e '${ADMIN_EMAIL}' \
     -f '${ADMIN_FIRSTNAME:-Admin}' \
