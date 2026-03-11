@@ -1,42 +1,98 @@
 # SciBack — DSpace 7.6.6 + ALICIA/RENATI
 
-Instalación modular de DSpace 7.6.6 para repositorios institucionales peruanos.
-
-## Uso
-
-```bash
-cp .env.example .env.dspace.deploy
-nano .env.dspace.deploy   # editar con datos reales
-sudo bash install.sh
-```
+Instalación modular de DSpace 7.6.6 para repositorios institucionales peruanos,
+con gestión de temas personalizados.
 
 ## Estructura
 
 ```
-├── install.sh                  # Disparador: ejecuta las 13 etapas
-├── .env.dspace.deploy          # Configuración (editar antes de ejecutar)
-└── etapas/
-    ├── 01-sistema.sh           # Timezone, paquetes, swap, usuario
-    ├── 02-java.sh              # OpenJDK 17
-    ├── 03-postgresql.sh        # PostgreSQL 14 + DB
-    ├── 04-solr.sh              # Apache Solr 8.11.4
-    ├── 05-tomcat.sh            # Apache Tomcat 9
-    ├── 06-dspace-backend.sh    # Clone, compile, install, migrate, admin
-    ├── 07-frontend.sh          # Angular + Node.js + PM2
-    ├── 08-nginx.sh             # Reverse proxy + SSL + robots.txt
-    ├── 09-handle.sh            # Handle Server (solo descarga)
-    ├── 10-cron.sh              # OAI-PMH, Solr, filter-media, stats
-    ├── 11-schemas-alicia.sh    # Schemas renati + thesis (REST API)
-    ├── 12-vocabularios.sh      # Vocabularios CONCYTEC
-    └── 13-formularios.sh       # Formularios de depósito ALICIA
+├── deploy.sh                       # Orquestador: ejecuta las 14 etapas
+├── limpiar.sh                      # Limpieza total para reinstalación
+├── .env.dspace.deploy              # Config activa (NO en Git)
+├── .env.example                    # Plantilla — copiar y editar
+├── etapas/
+│   ├── 01-sistema.sh               # Timezone, paquetes, swap, usuario
+│   ├── 02-java.sh                  # OpenJDK 17
+│   ├── 03-postgresql.sh            # PostgreSQL 14 + DB
+│   ├── 04-solr.sh                  # Apache Solr 8.11.4
+│   ├── 05-tomcat.sh                # Apache Tomcat 9
+│   ├── 06-dspace-backend.sh        # Clone, compile, install, migrate, admin
+│   ├── 07-frontend.sh              # Angular + Node.js + PM2
+│   ├── 08-nginx.sh                 # Reverse proxy + SSL + robots.txt
+│   ├── 09-handle.sh                # Handle Server (solo descarga)
+│   ├── 10-cron.sh                  # OAI-PMH, Solr, filter-media, stats
+│   ├── 11-schemas-alicia.sh        # Schemas renati + thesis (REST API)
+│   ├── 12-vocabularios.sh          # Vocabularios CONCYTEC
+│   ├── 13-formularios.sh           # Formularios de depósito ALICIA
+│   └── 14-lab-structure.sh         # Estructura comunidades SciBack Lab
+├── theme-manager/
+│   ├── theme-manager.sh            # Orquestador de personalización visual
+│   ├── .env.dspace.theme-manager   # Config de temas (NO en Git)
+│   ├── lib/                        # Librerías compartidas
+│   └── stages/                     # 13 etapas de personalización
+└── envs/                           # Configs por cliente (NO en Git)
+    └── uniq.env.dspace.deploy      # Ejemplo: config UNIQ
+```
+
+## Instalación completa
+
+```bash
+# 1. Copiar plantilla y editar con datos reales
+cp .env.example .env.dspace.deploy
+nano .env.dspace.deploy
+
+# 2. Ejecutar deploy (14 etapas, ~46 min)
+sudo bash deploy.sh
+
+# 3. Usar un .env de cliente específico
+sudo bash deploy.sh --env envs/uniq.env.dspace.deploy
+```
+
+El script muestra progreso en tiempo real: barra visual, tiempo transcurrido,
+tiempo restante estimado, y duración de cada etapa al completarse.
+
+## Limpieza (reinstalación desde cero)
+
+```bash
+sudo bash limpiar.sh     # Borra TODO: PostgreSQL, Solr, Tomcat, DSpace, etc.
+sudo bash deploy.sh      # Reinstalar
 ```
 
 ## Ejecutar etapas individuales
 
 ```bash
-sudo bash etapas/12-vocabularios.sh    # solo vocabularios
-sudo bash etapas/13-formularios.sh     # solo formularios
+sudo bash etapas/06-dspace-backend.sh   # solo backend
+sudo bash etapas/12-vocabularios.sh     # solo vocabularios
+sudo bash etapas/13-formularios.sh      # solo formularios
 ```
+
+## Theme Manager
+
+Personalización visual del frontend DSpace (colores, logo, banner, menús).
+
+```bash
+# Editar configuración de tema
+nano theme-manager/.env.dspace.theme-manager
+
+# Ejecutar todas las etapas
+bash theme-manager/theme-manager.sh
+
+# Ejecutar una etapa individual
+bash theme-manager/theme-manager.sh --stage 05-apply-colors
+
+# Listar etapas disponibles
+bash theme-manager/theme-manager.sh --list-stages
+```
+
+## Archivos .env
+
+| Archivo | Propósito | ¿En Git? |
+|---|---|---|
+| `.env.example` | Plantilla de referencia | ✅ Sí |
+| `.env.dspace.deploy` | Config activa con credenciales | ❌ No |
+| `envs/*.env.*` | Configs por cliente | ❌ No |
+| `theme-manager/.env.dspace.theme-manager.example` | Plantilla de temas | ✅ Sí |
+| `theme-manager/.env.dspace.theme-manager` | Config activa de temas | ❌ No |
 
 ## Notas DSpace 7.6.6
 

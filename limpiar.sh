@@ -68,4 +68,4 @@ sudo systemctl daemon-reload
 sudo apt-get autoremove -y -q 2>/dev/null || true
 
 echo ""
-echo "✓ Limpieza completada. Listo para: sudo bash install.sh"
+echo "✓ Limpieza completada. Listo para: sudo bash deploy.sh"

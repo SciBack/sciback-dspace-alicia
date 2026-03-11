@@ -8,3 +8,14 @@
 Thumbs.db
 .vscode/
 .idea/
+
+# ─── Archivos de entorno con credenciales reales ───────────
+# Solo los .example van en Git
+.env.dspace.deploy
+.env.dspace.theme-manager
+envs/*.env.*
+!envs/.gitkeep
+
+# ─── Logs y backups generados por scripts ──────────────────
+theme-manager/logs/
+theme-manager/backups/
