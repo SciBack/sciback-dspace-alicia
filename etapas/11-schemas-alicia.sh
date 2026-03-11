@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # SciBack — Etapa 11: Schemas ALICIA/RENATI vía REST API (DSpace 7.6.6)
-# Fix namespace thesis → http://purl.org/pe-repo/thesis#
+# Enfoque: DSpace 7.6.6 + Guía ALICIA + RENATI (sin CRIS)
 # =============================================================================
 
 set -Eeuo pipefail
@@ -49,6 +49,8 @@ require_command jq
 require_command awk
 require_command grep
 require_command tee
+require_command tr
+require_command head
 
 API_BASE="${DSPACE_REST_API_BASE:-http://localhost:8080/server/api}"
 ADMIN_EMAIL="${ADMIN_EMAIL:?ADMIN_EMAIL no definido en .env.deploy}"
@@ -67,7 +69,7 @@ header "Etapa 11 — Schemas ALICIA/RENATI"
 log "API: ${API_BASE}"
 log "Admin: ${ADMIN_EMAIL}"
 log "Log: ${LOG_FILE}"
-echo -e "${CYAN}  Tiempo estimado: ~1-2 min${NC}"
+echo -e "${CYAN}  Tiempo estimado: ~1-3 min${NC}"
 
 http_get() {
   local url="$1"
@@ -250,43 +252,61 @@ create_schema "renati" "http://purl.org/pe-repo/renati#"
 create_schema "thesis" "http://purl.org/pe-repo/thesis#"
 sleep 1
 
-header "Paso 3 — Campos renati.* (12)"
-create_field "renati" "type"       ""                 "Tipo de recurso RENATI (purl.org/pe-repo/renati/type). Obligatorio ALICIA."
-create_field "renati" "level"      ""                 "Nivel de grado académico SUNEDU. Obligatorio ALICIA."
-create_field "renati" "discipline" ""                 "Disciplina OCDE (purl.org/pe-repo/ocde/ford)."
+header "Paso 3 — Campos renati.*"
+create_field "renati" "type"       ""                 "Tipo de recurso RENATI. Obligatorio para tesis y trabajos académicos."
+create_field "renati" "level"      ""                 "Nivel de grado académico SUNEDU. Obligatorio para tesis."
+create_field "renati" "discipline" ""                 "Disciplina OCDE/FORD asociada al trabajo."
 create_field "renati" "advisor"    ""                 "Asesor de tesis. Formato: Apellidos, Nombres."
-create_field "renati" "advisor"    "dni"              "DNI asesor (8 dígitos). Obligatorio ALICIA."
-create_field "renati" "advisor"    "orcid"            "ORCID asesor (0000-0000-0000-0000)."
-create_field "renati" "author"     "dni"              "DNI autor (8 dígitos). Obligatorio ALICIA."
-create_field "renati" "author"     "orcid"            "ORCID autor (0000-0000-0000-0000)."
-create_field "renati" "juror"      ""                 "Miembro del jurado. Repetible."
-create_field "renati" "juror"      "dni"              "DNI jurado (8 dígitos)."
-create_field "renati" "publisher"  "country"          "País editor ISO 3166. Perú: PE."
-create_field "renati" "identifier" "orcidinstitution" "ORCID institucional."
+create_field "renati" "advisor"    "dni"              "DNI del asesor."
+create_field "renati" "advisor"    "cext"             "Carné de extranjería del asesor."
+create_field "renati" "advisor"    "pasaporte"        "Pasaporte del asesor."
+create_field "renati" "advisor"    "cedula"           "Cédula del asesor."
+create_field "renati" "advisor"    "orcid"            "ORCID del asesor."
+create_field "renati" "author"     "dni"              "DNI del autor."
+create_field "renati" "author"     "cext"             "Carné de extranjería del autor."
+create_field "renati" "author"     "pasaporte"        "Pasaporte del autor."
+create_field "renati" "author"     "cedula"           "Cédula del autor."
+create_field "renati" "author"     "orcid"            "ORCID del autor."
+create_field "renati" "juror"      ""                 "Miembro del jurado."
+create_field "renati" "juror"      "dni"              "DNI del jurado."
+create_field "renati" "publisher"  "country"          "País de la entidad editora o institución."
+create_field "renati" "identifier" "orcidinstitution" "Identificador ORCID institucional."
 
-header "Paso 4 — Campos thesis.* (4)"
+header "Paso 4 — Campos thesis.*"
 create_field "thesis" "degree" "name"       "Nombre del grado académico."
-create_field "thesis" "degree" "level"      "Nivel: Bachiller, Título, Segunda Esp., Maestría, Doctorado."
+create_field "thesis" "degree" "level"      "Nivel del grado: Bachiller, Título, Segunda Especialidad, Maestría, Doctorado."
 create_field "thesis" "degree" "discipline" "Especialidad académica."
 create_field "thesis" "degree" "grantor"    "Institución otorgante."
 
-header "Paso 5 — Campos dc.* adicionales (4)"
-create_field "dc" "subject"     "ocde"       "Clasificación OCDE/FORD. Obligatorio ALICIA."
-create_field "dc" "rights"      "uri"        "URI de licencia CC. Obligatorio ALICIA."
-create_field "dc" "description" "provenance" "Procedencia del depósito."
-create_field "dc" "relation"    "uri"        "URI de recurso relacionado."
+header "Paso 5 — Campos dc.* adicionales mínimos ALICIA"
+create_field "dc" "subject"     "ocde"         "Clasificación OCDE/FORD. Obligatorio en ALICIA."
+create_field "dc" "rights"      "uri"          "URI de licencia."
+create_field "dc" "description" "provenance"   "Procedencia del depósito."
+create_field "dc" "description" "sponsorship"  "Financiamiento o patrocinio del recurso."
+create_field "dc" "relation"    "uri"          "URI de recurso relacionado."
+create_field "dc" "relation"    "isPartOf"     "Recurso contenedor: revista, libro, colección, etc."
+create_field "dc" "type"        "version"      "Versión del recurso: submittedVersion, acceptedVersion, publishedVersion, etc."
+create_field "dc" "date"        "embargoEnd"   "Fecha de fin de embargo."
+create_field "dc" "identifier"  "citation"     "Cita bibliográfica recomendada."
+create_field "dc" "identifier"  "doi"          "Identificador DOI."
+create_field "dc" "identifier"  "isbn"         "ISBN para libros o capítulos."
+create_field "dc" "contributor" "editor"       "Editor del recurso o de la obra contenedora."
+create_field "dc" "publisher"   "country"      "País del editor."
+create_field "dc" "rights"      "accessRights" "Condición de acceso al recurso."
 
 header "Paso 6 — Verificación"
-for schema in renati thesis; do
+for schema in renati thesis dc; do
   existing="$(schema_exists "${schema}")"
-  if [[ "${existing}" == "${schema}" ]]; then
+  if [[ "${schema}" == "dc" ]]; then
+    log "Schema base esperado: dc"
+  elif [[ "${existing}" == "${schema}" ]]; then
     log "Schema: ${schema}"
   else
     warn "Schema: ${schema} no verificado"
   fi
 done
 
-for schema in renati thesis; do
+for schema in renati thesis dc; do
   field_count="$(
     http_get "${API_BASE}/core/metadatafields/search/byFieldName?schema=${schema}&size=100" \
       | jq '._embedded.metadatafields | length' 2>/dev/null || echo "0"
