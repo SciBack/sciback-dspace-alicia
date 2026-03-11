@@ -96,6 +96,22 @@ server {
         try_files \$uri \$uri/ =404;
     }
 
+    location ~* \.(css|js|woff2?|ttf|eot|svg|ico|map)$ {
+        root ${FRONTEND_DIR}/dist/browser;
+        expires 1h;
+        add_header Cache-Control "public";
+        try_files \$uri @frontend;
+    }
+
+    location @frontend {
+        proxy_pass         http://localhost:${PM2_PORT:-4000};
+        proxy_set_header   Host localhost;
+        proxy_set_header   X-Forwarded-Host \$host;
+        proxy_set_header   X-Real-IP \$remote_addr;
+        proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto \$scheme;
+    }
+
     location / {
         limit_req zone=frontend burst=20 nodelay;
         proxy_pass         http://localhost:${PM2_PORT:-4000};
