@@ -95,6 +95,18 @@ oai.url = ${DSPACE_BASEURL}/oai
 solr.server = ${SOLR_URL}
 
 default.locale = ${ADMIN_LANGUAGE:-es}
+
+# ── CORS ──────────────────────────────────────────────
+# Permite que el frontend Angular se comunique con la REST API
+rest.cors.allowed-origins = ${DSPACE_BASEURL}
+
+# ── Proxy inverso ─────────────────────────────────────
+# Indica que DSpace está detrás de un reverse proxy (Nginx)
+proxies.trusted.ipranges = 127.0.0.1
+
+# Usa los headers X-Forwarded-* enviados por Nginx
+# Necesario para CSRF tokens y cookies seguras
+server.forwarded-strategy = NATIVE
 CFGEOF
 
 chown "${RUN_USER}:${RUN_GROUP}" "${LOCAL_CFG_PATH}"
