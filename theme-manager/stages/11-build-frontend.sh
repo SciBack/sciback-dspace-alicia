@@ -1,53 +1,59 @@
 #!/usr/bin/env bash
+# =============================================================================
+# SciBack — Theme Manager — Etapa 11: Compilar frontend Angular SSR
+# =============================================================================
+
 set -Eeuo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly STAGE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly ROOT_DIR="$(cd "${STAGE_DIR}/.." && pwd)"
 
-# Cargar utilidades comunes del theme-manager
 # shellcheck disable=SC1091
 source "${ROOT_DIR}/lib/common.sh"
+# shellcheck disable=SC1091
+source "${ROOT_DIR}/lib/fs.sh"
+# shellcheck disable=SC1091
+source "${ROOT_DIR}/lib/dspace-theme.sh"
+# shellcheck disable=SC1091
+source "${ROOT_DIR}/lib/ui.sh"
 
-# Si no viene ENV_FILE definido externamente, usar el esperado por el proyecto
+register_error_trap
+
 ENV_FILE="${ENV_FILE:-${PROJECT_DIR}/.env.theme-manager}"
 
-if [[ ! -f "${ENV_FILE}" ]]; then
-  echo "[ERROR] No se encontró el archivo de entorno: ${ENV_FILE}"
-  exit 1
-fi
+print_header "Etapa 11 — Compilar frontend"
 
-set -a
-# shellcheck disable=SC1090
-source "${ENV_FILE}"
-set +a
+load_env_file "${ENV_FILE}"
+validate_config_vars
+validate_dspace_paths
 
-BUILD_CMD="${DSPACE_YARN_BUILD_COMMAND:-yarn build}"
+require_commands sudo bash
+
+BUILD_CMD="${DSPACE_YARN_BUILD_COMMAND:-yarn build:ssr}"
 NODE_OPTS="${DSPACE_NODE_OPTIONS:---max-old-space-size=6144}"
 RUN_USER="${DSPACE_RUN_AS_USER:-dspace}"
 FRONTEND_DIR="${DSPACE_FRONTEND_DIR:-/home/dspace/frontend}"
 THEME_NAME="${DSPACE_TARGET_THEME_NAME:-sciback_theme_dspace7}"
 DIST_DIR="${FRONTEND_DIR}/dist/browser"
 
-if [[ ! -d "${FRONTEND_DIR}" ]]; then
-  echo "[ERROR] No existe el directorio del frontend: ${FRONTEND_DIR}"
-  exit 1
-fi
+require_dir_exists "${FRONTEND_DIR}" "DSPACE_FRONTEND_DIR"
 
-echo "[INFO] Iniciando compilación del frontend"
-echo "[INFO] Usuario       : ${RUN_USER}"
-echo "[INFO] Frontend dir  : ${FRONTEND_DIR}"
-echo "[INFO] Build command : ${BUILD_CMD}"
-echo "[INFO] NODE_OPTIONS  : ${NODE_OPTS}"
-echo "[INFO] Theme name    : ${THEME_NAME}"
+log_info "Usuario       : ${RUN_USER}"
+log_info "Frontend dir  : ${FRONTEND_DIR}"
+log_info "Build command : ${BUILD_CMD}"
+log_info "NODE_OPTIONS  : ${NODE_OPTS}"
+log_info "Theme name    : ${THEME_NAME}"
 
-sudo -u "${RUN_USER}" bash -lc "
+run_as_dspace_user "
   set -Eeuo pipefail
 
   export NVM_DIR=\"\$HOME/.nvm\"
+
   if [[ -s \"\$NVM_DIR/nvm.sh\" ]]; then
     # shellcheck disable=SC1090
     source \"\$NVM_DIR/nvm.sh\"
   else
-    echo '[ERROR] No se encontró nvm.sh en \$NVM_DIR'
+    echo '[ERROR] No se encontró nvm.sh en '\$NVM_DIR
     exit 1
   fi
 
@@ -60,21 +66,18 @@ sudo -u "${RUN_USER}" bash -lc "
   echo '[INFO] Yarn version:'
   yarn -v
 
-  echo '[INFO] Ejecutando build...'
+  echo '[INFO] Ejecutando build del frontend...'
   ${BUILD_CMD}
 "
 
-echo "[INFO] Build frontend completado"
+log_info "Build frontend completado"
 
-echo "[INFO] Verificando CSS del theme..."
+print_step "Verificando artefactos de salida"
 
-sudo -u "${RUN_USER}" bash -lc "
+require_dir_exists "${DIST_DIR}" "directorio de salida del build"
+
+run_as_dspace_user "
   set -Eeuo pipefail
-
-  if [[ ! -d '${DIST_DIR}' ]]; then
-    echo '[ERROR] No existe el directorio de salida del build: ${DIST_DIR}'
-    exit 1
-  fi
 
   if [[ -f '${DIST_DIR}/dspace-theme.css' && ! -f '${DIST_DIR}/${THEME_NAME}-theme.css' ]]; then
     cp '${DIST_DIR}/dspace-theme.css' '${DIST_DIR}/${THEME_NAME}-theme.css'
@@ -84,6 +87,13 @@ sudo -u "${RUN_USER}" bash -lc "
   else
     echo '[WARN] No se encontró dspace-theme.css en ${DIST_DIR}'
   fi
+
+  if [[ -f '${FRONTEND_DIR}/dist/server/main.js' ]]; then
+    echo '[INFO] SSR server generado correctamente: dist/server/main.js'
+  else
+    echo '[ERROR] No se encontró dist/server/main.js'
+    exit 1
+  fi
 "
 
-echo "[INFO] Etapa 11 finalizada correctamente"
+log_info "Etapa 11 finalizada correctamente"
