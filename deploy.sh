@@ -71,19 +71,21 @@ progress_bar() {
   local width=30
   local filled=$(( pct * width / 100 ))
   local empty=$(( width - filled ))
+  local bar=""
 
-  printf "\033[0;36m["
-  printf '%0.s█' $(seq 1 $filled 2>/dev/null) || true
-  printf '%0.s░' $(seq 1 $empty 2>/dev/null) || true
-  printf "] %3d%%\033[0m" "$pct"
+  local i
+  for ((i=0; i<filled; i++)); do bar+="#"; done
+  for ((i=0; i<empty; i++)); do bar+="-"; done
+
+  printf '\033[0;36m[%s] %3d%%\033[0m' "$bar" "$pct"
 }
 
 # ─── Banner ──────────────────────────────────────────────────
 echo ""
-echo -e "\033[0;34m╔══════════════════════════════════════════════════════════╗\033[0m"
-echo -e "\033[0;36m║  SciBack — DSpace ${DSPACE_VERSION} + ALICIA/RENATI     ║\033[0m"
-echo -e "\033[0;36m║  Instalación modular v3.2                               ║\033[0m"
-echo -e "\033[0;34m╚══════════════════════════════════════════════════════════╝\033[0m"
+echo -e "\033[0;34m══════════════════════════════════════════════════════════\033[0m"
+echo -e "\033[0;36m  SciBack — DSpace ${DSPACE_VERSION} + ALICIA/RENATI     \033[0m"
+echo -e "\033[0;36m  Instalación modular v3.2                               \033[0m"
+echo -e "\033[0;34m══════════════════════════════════════════════════════════\033[0m"
 echo ""
 echo -e "  Cliente:   \033[0;32m${SCIBACK_CLIENT}\033[0m"
 echo -e "  Hostname:  \033[0;32m${DSPACE_HOSTNAME}\033[0m"
@@ -150,14 +152,14 @@ for i in "${!ETAPAS[@]}"; do
   RESTANTE_EST=$(( TIEMPO_TOTAL_EST - TIEMPO_ACUM_EST ))
 
   echo ""
-  echo -e "\033[0;34m╔══════════════════════════════════════════════════════════╗\033[0m"
-  echo -e "\033[0;36m║  ETAPA ${NUM}/${TOTAL} — ${ETAPA_KEY}\033[0m"
-  echo -e "\033[0;34m╠──────────────────────────────────────────────────────────╣\033[0m"
-  printf "  $(progress_bar $PCT)"
+  echo -e "\033[0;34m══════════════════════════════════════════════════════════\033[0m"
+  echo -e "\033[0;36m  ETAPA ${NUM}/${TOTAL} — ${ETAPA_KEY}\033[0m"
+  echo -e "\033[0;34m──────────────────────────────────────────────────────────\033[0m"
+  echo -ne "  $(progress_bar $PCT)"
   printf "  Transcurrido: \033[0;33m%s\033[0m" "$(format_time $ELAPSED_TOTAL)"
   printf "  Restante: \033[0;33m~%s\033[0m\n" "$(format_time $RESTANTE_EST)"
   echo -e "  Estimado para esta etapa: \033[0;33m~$(format_time ${TIEMPOS_EST[$ETAPA_KEY]:-60})\033[0m"
-  echo -e "\033[0;34m╚══════════════════════════════════════════════════════════╝\033[0m"
+  echo -e "\033[0;34m══════════════════════════════════════════════════════════\033[0m"
 
   ETAPA_INICIO=$(date +%s)
 
@@ -194,24 +196,24 @@ TOTAL_SEG=$(( INSTALL_FIN - INSTALL_INICIO ))
 TOTAL_MIN=$(( (TOTAL_SEG + 59) / 60 ))
 
 echo ""
-echo -e "\033[0;34m╔══════════════════════════════════════════════════════════╗\033[0m"
+echo -e "\033[0;34m══════════════════════════════════════════════════════════\033[0m"
 if [[ "$FALLIDAS" -eq 0 ]]; then
-  echo -e "\033[0;36m║  ✅ INSTALACIÓN COMPLETADA                              ║\033[0m"
+  echo -e "\033[0;36m  ✅ INSTALACIÓN COMPLETADA                              \033[0m"
 else
-  echo -e "\033[1;33m║  ⚠️  INSTALACIÓN COMPLETADA CON ERRORES                ║\033[0m"
+  echo -e "\033[1;33m  ⚠️  INSTALACIÓN COMPLETADA CON ERRORES                \033[0m"
 fi
-echo -e "\033[0;34m╠══════════════════════════════════════════════════════════╣\033[0m"
-echo -e "\033[0;36m║  Tiempo total: $(format_time $TOTAL_SEG) (${TOTAL_MIN} min)\033[0m"
-echo -e "\033[0;36m║  Etapas: ${EXITOSAS}/${TOTAL} exitosas | Omitidas: ${OMITIDAS} | Fallidas: ${FALLIDAS}\033[0m"
-echo -e "\033[0;34m╠══════════════════════════════════════════════════════════╣\033[0m"
-echo -e "\033[0;36m║  Frontend:  ${DSPACE_BASEURL}\033[0m"
-echo -e "\033[0;36m║  REST API:  ${DSPACE_BASEURL}/server\033[0m"
-echo -e "\033[0;36m║  OAI-PMH:   ${DSPACE_BASEURL}/oai/request\033[0m"
-echo -e "\033[0;34m╠══════════════════════════════════════════════════════════╣\033[0m"
-echo -e "\033[0;36m║  Verificar:\033[0m"
-echo -e "\033[0;36m║    systemctl status tomcat9 solr nginx\033[0m"
-echo -e "\033[0;36m║    su - dspace -c 'pm2 list'\033[0m"
-echo -e "\033[0;34m╚══════════════════════════════════════════════════════════╝\033[0m"
+echo -e "\033[0;34m══════════════════════════════════════════════════════════\033[0m"
+echo -e "\033[0;36m  Tiempo total: $(format_time $TOTAL_SEG) (${TOTAL_MIN} min)\033[0m"
+echo -e "\033[0;36m  Etapas: ${EXITOSAS}/${TOTAL} exitosas | Omitidas: ${OMITIDAS} | Fallidas: ${FALLIDAS}\033[0m"
+echo -e "\033[0;34m══════════════════════════════════════════════════════════\033[0m"
+echo -e "\033[0;36m  Frontend:  ${DSPACE_BASEURL}\033[0m"
+echo -e "\033[0;36m  REST API:  ${DSPACE_BASEURL}/server\033[0m"
+echo -e "\033[0;36m  OAI-PMH:   ${DSPACE_BASEURL}/oai/request\033[0m"
+echo -e "\033[0;34m══════════════════════════════════════════════════════════\033[0m"
+echo -e "\033[0;36m  Verificar:\033[0m"
+echo -e "\033[0;36m    systemctl status tomcat9 solr nginx\033[0m"
+echo -e "\033[0;36m    su - dspace -c 'pm2 list'\033[0m"
+echo -e "\033[0;34m══════════════════════════════════════════════════════════\033[0m"
 echo ""
 echo "  Log: ${LOG_FILE}"
 echo ""
