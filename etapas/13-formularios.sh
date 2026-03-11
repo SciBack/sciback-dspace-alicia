@@ -24,8 +24,8 @@ header() {
   echo -e "${BLUE}═══════════════════════════════════════════════════${NC}"
 }
 
-ENV_FILE=".env.dspace.deploy"
-if [[ "${1:-}" == "--env" ]]; then ENV_FILE="${2:-.env.dspace.deploy}"; fi
+ENV_FILE=".env.deploy"
+if [[ "${1:-}" == "--env" ]]; then ENV_FILE="${2:-.env.deploy}"; fi
 [[ -f "$ENV_FILE" ]] || error "No se encontró: $ENV_FILE"
 source "$ENV_FILE"
 [[ "$(id -u)" -eq 0 ]] || error "Ejecutar con sudo"

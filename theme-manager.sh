@@ -8,7 +8,7 @@ source "${THEME_DIR}/lib/common.sh"
 
 register_error_trap
 
-ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.dspace.theme-manager}"
+ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.theme-manager}"
 
 STAGES=(
   "01-load-config"
@@ -32,7 +32,7 @@ Uso:
   bash theme-manager.sh [--env /ruta/.env] [--stage 03-register-theme]
 
 Opciones:
-  --env <path>       Ruta del archivo de entorno (default: ${THEME_DIR}/.env.dspace.theme-manager)
+  --env <path>       Ruta del archivo de entorno (default: ${SCRIPT_DIR}/.env.theme-manager)
   --stage <name>     Ejecuta una etapa individual (por nombre o prefijo numérico)
   --list-stages      Lista etapas disponibles
 USAGE

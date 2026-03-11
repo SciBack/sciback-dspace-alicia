@@ -1,7 +1,7 @@
 #!/bin/bash
 # SciBack — Etapa 02: Java 17
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.dspace.deploy}"
+ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.deploy}"
 [[ -f "$ENV_FILE" ]] && source "$ENV_FILE" || { echo "[✗] No se encontró: $ENV_FILE"; exit 1; }
 
 [[ "${INSTALL_JAVA:-yes}" == "skip" ]] && exit 99

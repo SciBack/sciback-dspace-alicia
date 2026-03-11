@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ETAPAS_DIR="${SCRIPT_DIR}/etapas"
 
 # ─── Cargar .env ─────────────────────────────────────────────
-ENV_FILE="${SCRIPT_DIR}/.env.dspace.deploy"
+ENV_FILE="${SCRIPT_DIR}/.env.deploy"
 if [[ "${1:-}" == "--env" ]]; then ENV_FILE="${2:-${ENV_FILE}}"; fi
 [[ -f "$ENV_FILE" ]] || { echo -e "\033[0;31m[✗] No se encontró: $ENV_FILE\033[0m"; exit 1; }
 export ENV_FILE

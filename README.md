@@ -9,10 +9,10 @@ con gestión de temas personalizados.
 ├── deploy.sh                       # Orquestador: ejecuta las 14 etapas de instalación
 ├── limpiar.sh                      # Limpieza total para reinstalación
 ├── theme-manager.sh                # Orquestador: personalización visual (13 etapas)
-├── .env.dspace.deploy              # Config de deploy (NO en Git)
-├── .env.dspace.theme-manager       # Config de temas (NO en Git)
-├── .env.example                    # Plantilla deploy — copiar y editar
-├── .env.dspace.theme-manager.example  # Plantilla temas — copiar y editar
+├── .env.deploy              # Config de deploy (NO en Git)
+├── .env.theme-manager       # Config de temas (NO en Git)
+├── .env.deploy.example                    # Plantilla deploy — copiar y editar
+├── .env.theme-manager.example  # Plantilla temas — copiar y editar
 ├── etapas/                         # Etapas de instalación DSpace
 │   ├── 01-sistema.sh               # Timezone, paquetes, swap, usuario
 │   ├── 02-java.sh                  # OpenJDK 17
@@ -37,8 +37,8 @@ con gestión de temas personalizados.
 
 ```bash
 # 1. Copiar plantilla y editar con datos reales
-cp .env.example .env.dspace.deploy
-nano .env.dspace.deploy
+cp .env.deploy.example .env.deploy
+nano .env.deploy
 
 # 2. Ejecutar deploy (14 etapas, ~46 min)
 sudo bash deploy.sh
@@ -68,7 +68,7 @@ Personalización visual del frontend DSpace (colores, logo, banner, menús).
 
 ```bash
 # Editar configuración de tema
-nano .env.dspace.theme-manager
+nano .env.theme-manager
 
 # Ejecutar todas las etapas
 bash theme-manager.sh
@@ -84,10 +84,10 @@ bash theme-manager.sh --list-stages
 
 | Archivo | Propósito | ¿En Git? |
 |---|---|---|
-| `.env.example` | Plantilla de deploy | ✅ Sí |
-| `.env.dspace.theme-manager.example` | Plantilla de temas | ✅ Sí |
-| `.env.dspace.deploy` | Config activa con credenciales | ❌ No |
-| `.env.dspace.theme-manager` | Config activa de temas | ❌ No |
+| `.env.deploy.example` | Plantilla de deploy | ✅ Sí |
+| `.env.theme-manager.example` | Plantilla de temas | ✅ Sí |
+| `.env.deploy` | Config activa con credenciales | ❌ No |
+| `.env.theme-manager` | Config activa de temas | ❌ No |
 
 ## Notas DSpace 7.6.6
 

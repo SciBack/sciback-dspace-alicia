@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
 # SciBack — Etapa 14: Estructura inicial Lab (comunidades/colecciones)
-# Crea jerarquía desde variables LAB_* definidas en .env.dspace.deploy
+# Crea jerarquía desde variables LAB_* definidas en .env.deploy
 # Usa DSpace CLI: structure-builder
 # =============================================================================
 set -euo pipefail
@@ -9,7 +9,7 @@ set -euo pipefail
 ETAPA_INICIO=$(date +%s)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.dspace.deploy}"
+ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.deploy}"
 
 # Cargar variables si no vienen desde install.sh
 if [[ -z "${LAB_STRUCTURE:-}" || -z "${LAB_ROOT_COMMUNITY:-}" || -z "${LAB_SUBCOMMUNITIES:-}" ]]; then

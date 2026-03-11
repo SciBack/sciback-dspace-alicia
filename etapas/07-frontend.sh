@@ -2,7 +2,7 @@
 # SciBack — Etapa 07: Node.js + Frontend Angular + PM2
 # FIX CRÍTICO: PM2/Yarn con NVM en usuario dspace para evitar spawn node EACCES
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.dspace.deploy}"
+ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.deploy}"
 [[ -f "$ENV_FILE" ]] && source "$ENV_FILE" || { echo "[✗] No se encontró: $ENV_FILE"; exit 1; }
 
 [[ "${INSTALL_FRONTEND:-yes}" == "skip" ]] && exit 99

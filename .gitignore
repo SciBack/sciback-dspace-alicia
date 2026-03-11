@@ -11,8 +11,8 @@ Thumbs.db
 
 # ─── Archivos de entorno con credenciales reales ───────────
 # Solo los .example van en Git
-.env.dspace.deploy
-.env.dspace.theme-manager
+.env.deploy
+.env.theme-manager
 
 # ─── Logs y backups generados por scripts ──────────────────
 theme-manager/logs/
