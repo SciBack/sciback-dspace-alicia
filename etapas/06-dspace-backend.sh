@@ -45,6 +45,7 @@ run_as_dspace() {
   sudo -u "${RUN_USER}" HOME="${RUN_HOME}" bash -lc "
     set -Eeuo pipefail
     export HOME='${RUN_HOME}'
+    cd '${RUN_HOME}'
     $1
   "
 }
