@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # SciBack — Etapa 11: Schemas ALICIA/RENATI vía REST API (DSpace 7.6.6)
-# Enfoque: DSpace 7.6.6 + Guía ALICIA + RENATI (sin CRIS)
+# Enfoque: DSpace 7.6.6 + Guía ALICIA 2.1.0 + RENATI (sin CRIS)
 # =============================================================================
 
 set -Eeuo pipefail
@@ -253,46 +253,41 @@ create_schema "thesis" "http://purl.org/pe-repo/thesis#"
 sleep 1
 
 header "Paso 3 — Campos renati.*"
-create_field "renati" "type"       ""                 "Tipo de recurso RENATI. Obligatorio para tesis y trabajos académicos."
-create_field "renati" "level"      ""                 "Nivel de grado académico SUNEDU. Obligatorio para tesis."
-create_field "renati" "discipline" ""                 "Disciplina OCDE/FORD asociada al trabajo."
-create_field "renati" "advisor"    ""                 "Asesor de tesis. Formato: Apellidos, Nombres."
-create_field "renati" "advisor"    "dni"              "DNI del asesor."
-create_field "renati" "advisor"    "cext"             "Carné de extranjería del asesor."
-create_field "renati" "advisor"    "pasaporte"        "Pasaporte del asesor."
-create_field "renati" "advisor"    "cedula"           "Cédula del asesor."
-create_field "renati" "advisor"    "orcid"            "ORCID del asesor."
-create_field "renati" "author"     "dni"              "DNI del autor."
-create_field "renati" "author"     "cext"             "Carné de extranjería del autor."
-create_field "renati" "author"     "pasaporte"        "Pasaporte del autor."
-create_field "renati" "author"     "cedula"           "Cédula del autor."
-create_field "renati" "author"     "orcid"            "ORCID del autor."
-create_field "renati" "juror"      ""                 "Miembro del jurado."
-create_field "renati" "juror"      "dni"              "DNI del jurado."
-create_field "renati" "publisher"  "country"          "País de la entidad editora o institución."
-create_field "renati" "identifier" "orcidinstitution" "Identificador ORCID institucional."
+create_field "renati" "author"     "dni"       "Número de documento DNI del autor."
+create_field "renati" "author"     "cext"      "Número de carné de extranjería del autor."
+create_field "renati" "author"     "pasaporte" "Número de pasaporte del autor."
+create_field "renati" "author"     "cedula"    "Número de cédula del autor."
+
+create_field "renati" "advisor"    "orcid"     "ORCID del asesor."
+create_field "renati" "advisor"    "dni"       "Número de documento DNI del asesor."
+create_field "renati" "advisor"    "cext"      "Número de carné de extranjería del asesor."
+create_field "renati" "advisor"    "pasaporte" "Número de pasaporte del asesor."
+create_field "renati" "advisor"    "cedula"    "Número de cédula del asesor."
+
+create_field "renati" "type"       ""          "Tipo de trabajo de investigación."
+create_field "renati" "level"      ""          "Grado académico o título profesional."
+create_field "renati" "discipline" ""          "Código del programa."
+create_field "renati" "juror"      ""          "Jurado."
 
 header "Paso 4 — Campos thesis.*"
-create_field "thesis" "degree" "name"       "Nombre del grado académico."
-create_field "thesis" "degree" "level"      "Nivel del grado: Bachiller, Título, Segunda Especialidad, Maestría, Doctorado."
-create_field "thesis" "degree" "discipline" "Especialidad académica."
-create_field "thesis" "degree" "grantor"    "Institución otorgante."
+create_field "thesis" "degree" "name"       "Nombre del grado."
+create_field "thesis" "degree" "discipline" "Nombre del programa."
+create_field "thesis" "degree" "grantor"    "Institución otorgante del grado."
 
 header "Paso 5 — Campos dc.* adicionales mínimos ALICIA"
-create_field "dc" "subject"     "ocde"         "Clasificación OCDE/FORD. Obligatorio en ALICIA."
-create_field "dc" "rights"      "uri"          "URI de licencia."
-create_field "dc" "description" "provenance"   "Procedencia del depósito."
-create_field "dc" "description" "sponsorship"  "Financiamiento o patrocinio del recurso."
-create_field "dc" "relation"    "uri"          "URI de recurso relacionado."
-create_field "dc" "relation"    "isPartOf"     "Recurso contenedor: revista, libro, colección, etc."
-create_field "dc" "type"        "version"      "Versión del recurso: submittedVersion, acceptedVersion, publishedVersion, etc."
-create_field "dc" "date"        "embargoEnd"   "Fecha de fin de embargo."
-create_field "dc" "identifier"  "citation"     "Cita bibliográfica recomendada."
-create_field "dc" "identifier"  "doi"          "Identificador DOI."
-create_field "dc" "identifier"  "isbn"         "ISBN para libros o capítulos."
-create_field "dc" "contributor" "editor"       "Editor del recurso o de la obra contenedora."
-create_field "dc" "publisher"   "country"      "País del editor."
-create_field "dc" "rights"      "accessRights" "Condición de acceso al recurso."
+create_field "dc" "contributor" "advisor"        "Asesor."
+create_field "dc" "contributor" "editor"         "Editor."
+create_field "dc" "publisher"   "country"        "País de publicación."
+create_field "dc" "type"        "version"        "Versión de la publicación."
+create_field "dc" "date"        "embargoEnd"     "Fecha de fin de embargo."
+create_field "dc" "identifier"  "citation"       "Referencia bibliográfica."
+create_field "dc" "identifier"  "doi"            "DOI."
+create_field "dc" "identifier"  "isbn"           "ISBN."
+create_field "dc" "relation"    "uri"            "Recurso relacionado."
+create_field "dc" "relation"    "isPartOf"       "Recurso del cual forma parte."
+create_field "dc" "subject"     "ocde"           "Campo del conocimiento OCDE."
+create_field "dc" "rights"      "uri"            "Condición de licencia."
+create_field "dc" "description" "sponsorship"    "Patrocinio."
 
 header "Paso 6 — Verificación"
 for schema in renati thesis dc; do
