@@ -56,6 +56,7 @@ run_as_dspace() {
     set -Eeuo pipefail
     export HOME='${RUN_HOME}'
     export NVM_DIR='${NVM_DIR}'
+    cd '${RUN_HOME}'
     [[ -s \"\$NVM_DIR/nvm.sh\" ]] && source \"\$NVM_DIR/nvm.sh\"
     $1
   "
