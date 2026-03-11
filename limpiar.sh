@@ -120,5 +120,9 @@ sudo rm -rf /tmp/sciback-lab-structure
 sudo systemctl daemon-reload
 sudo apt-get autoremove -y -q 2>/dev/null || true
 
+# Paquetes npm globales del sistema (yarn, pm2 residuales en /usr/lib)
+sudo rm -rf /usr/lib/node_modules
+sudo rm -f /usr/bin/yarn /usr/bin/pm2 /bin/yarn /bin/pm2
+
 echo ""
 echo "✓ Limpieza completada. Listo para: sudo bash deploy.sh"
