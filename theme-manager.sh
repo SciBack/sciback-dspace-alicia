@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-TM_PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-THEME_DIR="${TM_PROJECT_DIR}/theme-manager"
+readonly TM_PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly THEME_DIR="${TM_PROJECT_DIR}/theme-manager"
 
 ENV_FILE="${ENV_FILE:-${TM_PROJECT_DIR}/.env.theme-manager}"
 
+if [[ ! -f "${THEME_DIR}/lib/common.sh" ]]; then
+  echo "[ERROR] No se encontró ${THEME_DIR}/lib/common.sh"
+  exit 1
+fi
+
+# shellcheck disable=SC1091
 source "${THEME_DIR}/lib/common.sh"
 
 register_error_trap
 
-STAGES=(
+readonly STAGES=(
   "01-load-config"
   "02-create-theme-copy"
   "03-register-theme"
@@ -41,7 +47,9 @@ USAGE
 run_stage() {
   local stage_name="$1"
   local stage_script="${THEME_DIR}/stages/${stage_name}.sh"
+
   [[ -f "${stage_script}" ]] || die "No existe etapa: ${stage_name}"
+
   log_info "Ejecutando etapa ${stage_name}"
   ENV_FILE="${ENV_FILE}" bash "${stage_script}"
 }
@@ -49,16 +57,19 @@ run_stage() {
 resolve_stage() {
   local input="$1"
   local stage
+
   for stage in "${STAGES[@]}"; do
     if [[ "${stage}" == "${input}" || "${stage}" == "${input}-"* ]]; then
       printf '%s\n' "${stage}"
       return 0
     fi
   done
+
   return 1
 }
 
 SELECTED_STAGE=""
+
 while (($#)); do
   case "$1" in
     --env)
@@ -84,11 +95,16 @@ while (($#)); do
       ;;
   esac
   shift
-
 done
+
+[[ -f "${ENV_FILE}" ]] || die "No existe el archivo de entorno: ${ENV_FILE}"
+
+export ENV_FILE
 
 ensure_dir "${THEME_DIR}/logs"
 ensure_dir "${THEME_DIR}/backups"
+
+log_info "Usando archivo de entorno: ${ENV_FILE}"
 
 if [[ -n "${SELECTED_STAGE}" ]]; then
   resolved="$(resolve_stage "${SELECTED_STAGE}")" || die "Etapa inválida: ${SELECTED_STAGE}"
