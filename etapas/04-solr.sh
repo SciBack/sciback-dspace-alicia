@@ -34,7 +34,13 @@ SOLR_HOST="127.0.0.1"   # Solr escucha solo en localhost — nunca expuesto
 # --- fin SciBack ---
 EOF
 
-systemctl restart solr
+if [[ -d /run/systemd/system ]]; then
+  systemctl restart solr
+elif [[ -x /etc/init.d/solr ]]; then
+  /etc/init.d/solr restart || /etc/init.d/solr start || true
+else
+  /opt/solr/bin/solr status -p 8983 >/dev/null 2>&1 || /opt/solr/bin/solr start -p 8983
+fi
 echo -e "\033[0;32m[✓]\033[0m Solr configurado: heap ${SOLR_HEAP_MIN:-512m}-${SOLR_HEAP_MAX:-1024m}, bind 127.0.0.1"
 
 ETAPA_FIN=$(date +%s)

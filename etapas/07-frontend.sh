@@ -26,7 +26,24 @@ RUN_GROUP="${DSPACE_RUN_AS_GROUP:-dspace}"
 RUN_HOME="/home/${RUN_USER}"
 FRONTEND_DIR="${DSPACE_FRONTEND_DIR:-${RUN_HOME}/frontend}"
 NVM_DIR="${RUN_HOME}/.nvm"
-NODE_MAJOR="${NODE_MAJOR:-20}"
+
+# DSpace Angular 7.6.x está validado para Node 16/18 (no 20)
+if [[ -z "${NODE_MAJOR:-}" ]]; then
+  if [[ "${DSPACE_VERSION}" =~ ^7\.6\. ]]; then
+    NODE_MAJOR="18"
+  else
+    NODE_MAJOR="20"
+  fi
+else
+  NODE_MAJOR="${NODE_MAJOR}"
+fi
+
+if [[ "${DSPACE_VERSION}" =~ ^7\.6\. ]] && [[ ! "${NODE_MAJOR}" =~ ^(16|18)$ ]]; then
+  echo "[✗] DSPACE_VERSION=${DSPACE_VERSION} requiere NODE_MAJOR=16 o 18 (actual: ${NODE_MAJOR})"
+  echo "    Sugerencia: ajustar NODE_MAJOR=18 en .env.deploy"
+  exit 1
+fi
+
 PM2_APP_NAME="${DSPACE_PM2_APP_NAME:-dspace-${SCIBACK_CLIENT}}"
 PM2_PORT_VALUE="${PM2_PORT:-4000}"
 

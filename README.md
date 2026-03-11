@@ -99,4 +99,4 @@ bash theme-manager.sh --list-stages
 
 ## Compatibilidad
 
-Ubuntu 22.04 LTS | Java 17 | PostgreSQL 14 | Solr 8.11.4 | Tomcat 9 | Node.js 20
+Ubuntu 22.04 LTS | Java 17 | PostgreSQL 14 | Solr 8.11.4 | Tomcat 9 | Node.js 18
