@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # SciBack — Etapa 08: Nginx + SSL + robots.txt
+# FIX: X-Forwarded-Host y X-Forwarded-Port en location /server
+# FIX: Eliminado location /bitstream (DSpace 7 sirve bitstreams vía /server/api)
 
 set -Eeuo pipefail
 
@@ -19,11 +21,12 @@ ETAPA_INICIO=$(date +%s)
 
 RUN_USER="${DSPACE_RUN_AS_USER:-dspace}"
 RUN_GROUP="${DSPACE_RUN_AS_GROUP:-dspace}"
-FRONTEND_DIR="${DSPACE_FRONTEND_DIR:-/home/dspace/frontend}"
+RUN_HOME="/home/${RUN_USER}"
+FRONTEND_DIR="${DSPACE_FRONTEND_DIR:-${RUN_HOME}/frontend}"
 DIST_BROWSER_DIR="${FRONTEND_DIR}/dist/browser"
 PM2_PORT_VALUE="${PM2_PORT:-4000}"
 PM2_APP_NAME="${DSPACE_PM2_APP_NAME:-dspace-${SCIBACK_CLIENT}}"
-NVM_DIR="/home/${RUN_USER}/.nvm"
+NVM_DIR="${RUN_HOME}/.nvm"
 
 require_command() {
   command -v "$1" >/dev/null 2>&1 || {
@@ -89,7 +92,7 @@ fi
 echo -e "\n\033[0;34m--- 8.3 Validando build y permisos para assets del frontend ---\033[0m"
 [[ -d "${DIST_BROWSER_DIR}" ]] || { echo "[✗] No existe ${DIST_BROWSER_DIR}. Ejecuta primero la etapa 07"; exit 1; }
 
-chmod o+x "/home/${RUN_USER}"
+chmod o+x "${RUN_HOME}"
 chmod o+x "${FRONTEND_DIR}"
 chmod o+x "${FRONTEND_DIR}/dist"
 chmod o+x "${DIST_BROWSER_DIR}"
@@ -179,6 +182,7 @@ server {
         proxy_read_timeout 300s;
     }
 
+    # ── Frontend Angular (UI) ────────────────────────────────────
     location / {
         limit_req zone=frontend burst=20 nodelay;
         proxy_pass         http://127.0.0.1:${PM2_PORT_VALUE};
@@ -193,6 +197,9 @@ server {
         proxy_read_timeout 300s;
     }
 
+    # ── Backend REST API ─────────────────────────────────────────
+    # FIX: X-Forwarded-Host + X-Forwarded-Port son CRÍTICOS para que
+    # DSpace genere URLs HAL correctas y valide CSRF tokens
     location /server {
         limit_req zone=api burst=10 nodelay;
         proxy_pass         http://127.0.0.1:8080/server;
@@ -202,12 +209,11 @@ server {
         proxy_set_header   X-Real-IP \$remote_addr;
         proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto \$scheme;
-        proxy_set_header   X-Forwarded-Port \$server_port;
-        proxy_set_header   Connection "";
-        proxy_cookie_path  /server /server;
+        proxy_set_header   X-Forwarded-Port 443;
         proxy_read_timeout 300s;
     }
 
+    # ── OAI-PMH — cosecha ALICIA (sin rate limit agresivo) ───────
     location /oai {
         limit_req zone=oai_public burst=5 nodelay;
         proxy_pass         http://127.0.0.1:8080/server/oai;
@@ -219,6 +225,7 @@ server {
         proxy_read_timeout 600s;
     }
 
+    # ── Handle resolver ──────────────────────────────────────────
     location /handle {
         limit_req zone=frontend burst=30 nodelay;
         proxy_pass         http://127.0.0.1:${PM2_PORT_VALUE}/handle;
@@ -230,17 +237,7 @@ server {
         proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
     }
 
-    location /bitstream {
-        limit_req zone=api burst=5 nodelay;
-        proxy_pass         http://127.0.0.1:8080/bitstream;
-        proxy_http_version 1.1;
-        proxy_set_header   Host \$host;
-        proxy_set_header   X-Forwarded-Proto \$scheme;
-        proxy_set_header   X-Real-IP \$remote_addr;
-        proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_read_timeout 120s;
-    }
-
+    # ── Sitemap ──────────────────────────────────────────────────
     location /sitemap {
         proxy_pass         http://127.0.0.1:8080/sitemap;
         proxy_http_version 1.1;
@@ -248,6 +245,7 @@ server {
         proxy_set_header   X-Forwarded-Proto \$scheme;
     }
 
+    # ── Bloquear acceso directo a Solr/Tomcat manager ────────────
     location /solr         { return 403; }
     location /manager      { return 403; }
     location /host-manager { return 403; }
@@ -330,13 +328,14 @@ fi
 
 echo -e "\n\033[0;34m--- 8.8 Resolución local y reinicio PM2 ---\033[0m"
 if ! grep -q "${DSPACE_HOSTNAME}" /etc/hosts 2>/dev/null; then
-  echo "127.0.0.1 ${DSPACE_HOSTNAME}" >> /etc/hosts
+  echo "127.0.0.1 ${DSPACE_HOSTNAME}  # SciBack DSpace" >> /etc/hosts
   echo -e "\033[0;32m[✓]\033[0m ${DSPACE_HOSTNAME} agregado a /etc/hosts"
 fi
 
 if [[ -s "${NVM_DIR}/nvm.sh" ]]; then
-  sudo -u "${RUN_USER}" bash -lc "
+  sudo -u "${RUN_USER}" HOME="${RUN_HOME}" bash -lc "
     set -Eeuo pipefail
+    export HOME='${RUN_HOME}'
     export NVM_DIR='${NVM_DIR}'
     source \"\$NVM_DIR/nvm.sh\"
     if command -v pm2 >/dev/null 2>&1; then
