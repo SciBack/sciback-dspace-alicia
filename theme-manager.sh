@@ -8,7 +8,7 @@ source "${THEME_DIR}/lib/common.sh"
 
 register_error_trap
 
-ENV_FILE="${ENV_FILE:-${THEME_DIR}/.env.dspace.theme-manager}"
+ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env.dspace.theme-manager}"
 
 STAGES=(
   "01-load-config"

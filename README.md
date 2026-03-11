@@ -9,8 +9,10 @@ con gestión de temas personalizados.
 ├── deploy.sh                       # Orquestador: ejecuta las 14 etapas de instalación
 ├── limpiar.sh                      # Limpieza total para reinstalación
 ├── theme-manager.sh                # Orquestador: personalización visual (13 etapas)
-├── .env.dspace.deploy              # Config de deploy activa (NO en Git)
-├── .env.example                    # Plantilla — copiar y editar
+├── .env.dspace.deploy              # Config de deploy (NO en Git)
+├── .env.dspace.theme-manager       # Config de temas (NO en Git)
+├── .env.example                    # Plantilla deploy — copiar y editar
+├── .env.dspace.theme-manager.example  # Plantilla temas — copiar y editar
 ├── etapas/                         # Etapas de instalación DSpace
 │   ├── 01-sistema.sh               # Timezone, paquetes, swap, usuario
 │   ├── 02-java.sh                  # OpenJDK 17
@@ -26,12 +28,9 @@ con gestión de temas personalizados.
 │   ├── 12-vocabularios.sh          # Vocabularios CONCYTEC
 │   ├── 13-formularios.sh           # Formularios de depósito ALICIA
 │   └── 14-lab-structure.sh         # Estructura comunidades SciBack Lab
-├── theme-manager/                  # Recursos del theme manager
-│   ├── .env.dspace.theme-manager   # Config de temas (NO en Git)
-│   ├── lib/                        # Librerías compartidas (common, fs, ui)
-│   └── stages/                     # 13 etapas de personalización
-└── envs/                           # Configs por cliente (NO en Git)
-    └── uniq.env.dspace.deploy      # Ejemplo: config UNIQ
+└── theme-manager/                  # Recursos del theme manager
+    ├── lib/                        # Librerías compartidas (common, fs, ui)
+    └── stages/                     # 13 etapas de personalización
 ```
 
 ## Instalación completa
@@ -43,9 +42,6 @@ nano .env.dspace.deploy
 
 # 2. Ejecutar deploy (14 etapas, ~46 min)
 sudo bash deploy.sh
-
-# 3. Usar un .env de cliente específico
-sudo bash deploy.sh --env envs/uniq.env.dspace.deploy
 ```
 
 El script muestra progreso en tiempo real: barra visual, tiempo transcurrido,
@@ -72,7 +68,7 @@ Personalización visual del frontend DSpace (colores, logo, banner, menús).
 
 ```bash
 # Editar configuración de tema
-nano theme-manager/.env.dspace.theme-manager
+nano .env.dspace.theme-manager
 
 # Ejecutar todas las etapas
 bash theme-manager.sh
@@ -88,11 +84,10 @@ bash theme-manager.sh --list-stages
 
 | Archivo | Propósito | ¿En Git? |
 |---|---|---|
-| `.env.example` | Plantilla de referencia | ✅ Sí |
+| `.env.example` | Plantilla de deploy | ✅ Sí |
+| `.env.dspace.theme-manager.example` | Plantilla de temas | ✅ Sí |
 | `.env.dspace.deploy` | Config activa con credenciales | ❌ No |
-| `envs/*.env.*` | Configs por cliente | ❌ No |
-| `theme-manager/.env.dspace.theme-manager.example` | Plantilla de temas | ✅ Sí |
-| `theme-manager/.env.dspace.theme-manager` | Config activa de temas | ❌ No |
+| `.env.dspace.theme-manager` | Config activa de temas | ❌ No |
 
 ## Notas DSpace 7.6.6
 

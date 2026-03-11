@@ -31,7 +31,7 @@ backup_file() {
   log_info "Backup creado: $dst"
 }
 
-ENV_FILE="${ENV_FILE:-${ROOT_DIR}/.env.dspace.theme-manager}"
+ENV_FILE="${ENV_FILE:-${PROJECT_DIR}/.env.dspace.theme-manager}"
 [[ -f "${ENV_FILE}" ]] || die "No existe ENV_FILE: ${ENV_FILE}"
 
 set -a

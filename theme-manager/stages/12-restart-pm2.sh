@@ -6,7 +6,7 @@ ROOT_DIR="$(cd "${STAGE_DIR}/.." && pwd)"
 source "${ROOT_DIR}/lib/common.sh"
 
 register_error_trap
-ENV_FILE="${ENV_FILE:-${ROOT_DIR}/.env.dspace.theme-manager}"
+ENV_FILE="${ENV_FILE:-${PROJECT_DIR}/.env.dspace.theme-manager}"
 load_env_file "${ENV_FILE}"
 require_commands pm2 sudo
 

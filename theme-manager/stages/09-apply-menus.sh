@@ -7,7 +7,7 @@ source "${ROOT_DIR}/lib/common.sh"
 source "${ROOT_DIR}/lib/fs.sh"
 
 register_error_trap
-ENV_FILE="${ENV_FILE:-${ROOT_DIR}/.env.dspace.theme-manager}"
+ENV_FILE="${ENV_FILE:-${PROJECT_DIR}/.env.dspace.theme-manager}"
 load_env_file "${ENV_FILE}"
 
 MENU_FILE="${DSPACE_TARGET_THEME_DIR}/components/menu/theme-menu-flags.ts"
