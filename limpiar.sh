@@ -1,6 +1,9 @@
 #!/bin/bash
 # SciBack — limpiar.sh — Limpieza total para reinstalación desde cero
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 echo "⚠️  Esto borrará TODA la instalación DSpace. Ctrl+C para cancelar."
 read -p "¿Continuar? (s/N): " -n 1 -r
 echo ""
@@ -10,7 +13,12 @@ echo ""
 sudo systemctl stop tomcat9 2>/dev/null || true
 sudo systemctl stop solr 2>/dev/null || true
 sudo systemctl stop nginx 2>/dev/null || true
-sudo -u dspace pm2 kill 2>/dev/null || true
+sudo systemctl stop handle 2>/dev/null || true
+sudo -u dspace bash -lc '
+  export NVM_DIR="/home/dspace/.nvm"
+  [[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
+  pm2 kill 2>/dev/null || true
+' 2>/dev/null || true
 
 # PostgreSQL
 sudo pg_dropcluster 14 main --stop 2>/dev/null || true
@@ -54,8 +62,13 @@ sudo rm -f /etc/nginx/sites-available/dspace-*
 sudo rm -f /etc/nginx/sites-enabled/dspace-*
 sudo rm -f /var/www/html/robots.txt
 
-# Hosts (ambos hostnames posibles)
-sudo sed -i '/repositorio\./d' /etc/hosts
+# Hosts — limpiar hostname del .env si existe, y patrones conocidos
+if [[ -f "${SCRIPT_DIR}/.env.deploy" ]]; then
+  source "${SCRIPT_DIR}/.env.deploy"
+  sudo sed -i "/${DSPACE_HOSTNAME}/d" /etc/hosts 2>/dev/null || true
+fi
+sudo sed -i '/# SciBack/d' /etc/hosts 2>/dev/null || true
+sudo sed -i '/repositorio\./d' /etc/hosts 2>/dev/null || true
 
 # Cron de dspace
 sudo crontab -r -u dspace 2>/dev/null || true
