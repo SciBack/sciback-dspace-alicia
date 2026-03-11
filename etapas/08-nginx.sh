@@ -99,7 +99,8 @@ server {
     location / {
         limit_req zone=frontend burst=20 nodelay;
         proxy_pass         http://localhost:${PM2_PORT:-4000};
-        proxy_set_header   Host \$host;
+        proxy_set_header   Host localhost;
+        proxy_set_header   X-Forwarded-Host \$host;
         proxy_set_header   X-Real-IP \$remote_addr;
         proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto \$scheme;
@@ -127,7 +128,8 @@ server {
     location /handle {
         limit_req zone=frontend burst=30 nodelay;
         proxy_pass         http://localhost:${PM2_PORT:-4000}/handle;
-        proxy_set_header   Host \$host;
+        proxy_set_header   Host localhost;
+        proxy_set_header   X-Forwarded-Host \$host;
         proxy_set_header   X-Forwarded-Proto \$scheme;
     }
 
