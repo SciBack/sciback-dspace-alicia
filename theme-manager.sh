@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${ROOT_DIR}/lib/common.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+THEME_DIR="${SCRIPT_DIR}/theme-manager"
+
+source "${THEME_DIR}/lib/common.sh"
 
 register_error_trap
 
-ENV_FILE="${ENV_FILE:-${ROOT_DIR}/.env.dspace.theme-manager}"
+ENV_FILE="${ENV_FILE:-${THEME_DIR}/.env.dspace.theme-manager}"
 
 STAGES=(
   "01-load-config"
@@ -30,7 +32,7 @@ Uso:
   bash theme-manager.sh [--env /ruta/.env] [--stage 03-register-theme]
 
 Opciones:
-  --env <path>       Ruta del archivo de entorno (default: ${ROOT_DIR}/.env.dspace.theme-manager)
+  --env <path>       Ruta del archivo de entorno (default: ${THEME_DIR}/.env.dspace.theme-manager)
   --stage <name>     Ejecuta una etapa individual (por nombre o prefijo numérico)
   --list-stages      Lista etapas disponibles
 USAGE
@@ -38,7 +40,7 @@ USAGE
 
 run_stage() {
   local stage_name="$1"
-  local stage_script="${ROOT_DIR}/stages/${stage_name}.sh"
+  local stage_script="${THEME_DIR}/stages/${stage_name}.sh"
   [[ -f "${stage_script}" ]] || die "No existe etapa: ${stage_name}"
   log_info "Ejecutando etapa ${stage_name}"
   ENV_FILE="${ENV_FILE}" bash "${stage_script}"
@@ -85,8 +87,8 @@ while (($#)); do
 
 done
 
-ensure_dir "${ROOT_DIR}/logs"
-ensure_dir "${ROOT_DIR}/backups"
+ensure_dir "${THEME_DIR}/logs"
+ensure_dir "${THEME_DIR}/backups"
 
 if [[ -n "${SELECTED_STAGE}" ]]; then
   resolved="$(resolve_stage "${SELECTED_STAGE}")" || die "Etapa inválida: ${SELECTED_STAGE}"

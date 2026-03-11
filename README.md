@@ -6,11 +6,12 @@ con gestión de temas personalizados.
 ## Estructura
 
 ```
-├── deploy.sh                       # Orquestador: ejecuta las 14 etapas
+├── deploy.sh                       # Orquestador: ejecuta las 14 etapas de instalación
 ├── limpiar.sh                      # Limpieza total para reinstalación
-├── .env.dspace.deploy              # Config activa (NO en Git)
+├── theme-manager.sh                # Orquestador: personalización visual (13 etapas)
+├── .env.dspace.deploy              # Config de deploy activa (NO en Git)
 ├── .env.example                    # Plantilla — copiar y editar
-├── etapas/
+├── etapas/                         # Etapas de instalación DSpace
 │   ├── 01-sistema.sh               # Timezone, paquetes, swap, usuario
 │   ├── 02-java.sh                  # OpenJDK 17
 │   ├── 03-postgresql.sh            # PostgreSQL 14 + DB
@@ -25,10 +26,9 @@ con gestión de temas personalizados.
 │   ├── 12-vocabularios.sh          # Vocabularios CONCYTEC
 │   ├── 13-formularios.sh           # Formularios de depósito ALICIA
 │   └── 14-lab-structure.sh         # Estructura comunidades SciBack Lab
-├── theme-manager/
-│   ├── theme-manager.sh            # Orquestador de personalización visual
+├── theme-manager/                  # Recursos del theme manager
 │   ├── .env.dspace.theme-manager   # Config de temas (NO en Git)
-│   ├── lib/                        # Librerías compartidas
+│   ├── lib/                        # Librerías compartidas (common, fs, ui)
 │   └── stages/                     # 13 etapas de personalización
 └── envs/                           # Configs por cliente (NO en Git)
     └── uniq.env.dspace.deploy      # Ejemplo: config UNIQ
@@ -75,13 +75,13 @@ Personalización visual del frontend DSpace (colores, logo, banner, menús).
 nano theme-manager/.env.dspace.theme-manager
 
 # Ejecutar todas las etapas
-bash theme-manager/theme-manager.sh
+bash theme-manager.sh
 
 # Ejecutar una etapa individual
-bash theme-manager/theme-manager.sh --stage 05-apply-colors
+bash theme-manager.sh --stage 05-apply-colors
 
 # Listar etapas disponibles
-bash theme-manager/theme-manager.sh --list-stages
+bash theme-manager.sh --list-stages
 ```
 
 ## Archivos .env
